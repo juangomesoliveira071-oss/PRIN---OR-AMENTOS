@@ -6,552 +6,703 @@
     <title>Gerador de Orçamentos PRIN 3D</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDKs CDN -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais para o Firebase
+        window.firebaseApp = null;
+        window.firestoreDb = null;
+        window.firestoreAuth = null;
+        window.currentUserId = null;
+        window.isAuthReady = false;
+
+        // Função para inicializar o Firebase
+        window.initializeFirebase = async () => {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            try {
+                window.firebaseApp = initializeApp(firebaseConfig);
+                window.firestoreDb = getFirestore(window.firebaseApp);
+                window.firestoreAuth = getAuth(window.firebaseApp);
+
+                onAuthStateChanged(window.firestoreAuth, async (user) => {
+                    if (user) {
+                        window.currentUserId = user.uid;
+                    } else {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(window.firestoreAuth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(window.firestoreAuth);
+                            }
+                        } catch (error) {
+                            console.error("Erro ao autenticar no Firebase:", error);
+                            showMessageBox("Erro ao conectar com o servidor de autenticação. Tente novamente mais tarde.");
+                        }
+                        window.currentUserId = window.firestoreAuth.currentUser?.uid || crypto.randomUUID();
+                    }
+                    window.isAuthReady = true;
+                    // Chamar a função para carregar templates e renderizar após a autenticação
+                    loadSavedTemplates();
+                });
+            } catch (error) {
+                console.error("Erro na inicialização do Firebase:", error);
+                showMessageBox("Erro na inicialização do Firebase. Verifique a configuração.");
+            }
+        };
+
+        // Funções Firestore (disponibilizadas globalmente)
+        window.getFirestore = getFirestore;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.addDoc = addDoc;
+        window.doc = doc;
+        window.deleteDoc = deleteDoc;
+    </script>
+    <!-- html2canvas CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+            xintegrity="sha512-BNaRQnYJtSwHD3H7lFTNAsnpakIRVcOQIRpnADuFVcbPHzVcFxXFLpvN3ru0ppS5JAwHTyJVhFPUGfdFrHhFXg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Alinha no topo para que o conteúdo não fique esmagado em telas pequenas */
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Mais sombra para um visual moderno */
-            padding: 40px; /* Mais padding */
-            max-width: 950px; /* Ligeiramente mais largo */
-            width: 100%;
-            margin: 20px auto;
-        }
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            border: 1px solid #e2e8f0; /* Menos contraste, mais suave */
-            border-radius: 8px;
-            padding: 12px 16px; /* Mais padding para campos maiores */
-            width: 100%;
-            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-            color: #1f2937;
-            font-size: 1rem;
-        }
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Sombra mais sutil no foco */
-        }
-        button {
-            padding: 12px 24px; /* Mais padding para botões */
-            border-radius: 10px; /* Cantos mais arredondados */
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Sombra mais pronunciada nos botões */
-        }
-        button:hover {
-            transform: translateY(-2px); /* Mais destaque no hover */
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
-        }
-        .btn-primary {
-            background-color: #3b82f6;
-            color: #ffffff;
-        }
-        .btn-primary:hover {
-            background-color: #2563eb;
-        }
-        .btn-secondary {
-            background-color: #6b7280;
-            color: #ffffff;
-        }
-        .btn-secondary:hover {
-            background-color: #4b5563;
-        }
-        .btn-danger {
-            background-color: #ef4444;
-            color: #ffffff;
-        }
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-        .btn-success {
-            background-color: #10b981;
-            color: #ffffff;
-        }
-        .btn-success:hover {
-            background-color: #059669;
-        }
-        .btn-warning {
-            background-color: #f59e0b;
-            color: #ffffff;
-        }
-        .btn-warning:hover {
-            background-color: #d97706;
-        }
-
-        /* Custom styling for file input for better appearance */
-        input[type="file"] {
-            display: none;
-        }
-        .custom-file-upload {
-            border: 1px solid #cbd5e1; /* Cor mais suave */
-            border-radius: 8px;
-            padding: 10px 14px; /* Ajuste no padding */
-            display: inline-flex; /* Para alinhar o ícone se houver */
-            align-items: center;
-            gap: 8px; /* Espaçamento entre texto e ícone */
-            cursor: pointer;
-            background-color: #fefefe; /* Branco quase puro */
-            color: #4b5563;
-            transition: background-color 0.2s ease-in-out;
-            font-size: 0.9rem; /* Levemente maior */
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra sutil */
-        }
-        .custom-file-upload:hover {
-            background-color: #f1f5f9; /* Suave no hover */
-        }
-
-        /* Table specific styles */
-        .quote-table {
-            width: 100%;
-            border-collapse: separate; /* Para border-radius nas células */
-            border-spacing: 0;
-            margin-bottom: 2rem; /* Mais espaçamento */
-        }
-        .quote-table th, .quote-table td {
-            padding: 16px; /* Mais padding na tabela */
-            border-bottom: 1px solid #e2e8f0; /* Cor mais suave */
-            text-align: left;
-        }
-        .quote-table th {
-            background-color: #f8fafc; /* Ligeiramente mais claro */
-            font-weight: 600;
-            color: #475569; /* Cinza mais escuro para melhor contraste */
-            text-transform: uppercase;
-            font-size: 0.85rem; /* Um pouco menor para headers */
-            letter-spacing: 0.05em; /* Espaçamento entre letras */
-        }
-        .quote-table thead tr:first-child th:first-child { border-top-left-radius: 8px; }
-        .quote-table thead tr:first-child th:last-child { border-top-right-radius: 8px; }
-        .quote-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .quote-table input[type="text"],
-        .quote-table input[type="number"],
-        .quote-table textarea {
-            border: 1px solid transparent; /* Transparente por padrão */
-            padding: 10px;
-            font-size: 0.95rem;
-            background-color: transparent; /* Transparente */
-            resize: vertical; /* Permitir redimensionar textarea */
-        }
-        .quote-table input[type="text"]:focus,
-        .quote-table input[type="number"]:focus,
-        .quote-table textarea:focus {
-            box-shadow: none;
-            border-color: #a7d3f9; /* Azul claro no foco */
-            background-color: #e0f2fe; /* Fundo azul claro no foco */
-        }
-        .remove-item-btn {
-            background-color: #fef2f2; /* Fundo vermelho claro */
-            color: #ef4444; /* Texto vermelho */
-            padding: 8px 12px; /* Mais padding */
-            border-radius: 6px; /* Mais arredondado */
-            font-size: 0.8rem;
-            box-shadow: none; /* Sem sombra nos botões da tabela */
-        }
-        .remove-item-btn:hover {
-            background-color: #fee2e2; /* Fundo mais escuro no hover */
-            transform: none; /* Sem transform para botões menores */
-            box-shadow: none;
-        }
-        .currency-display {
-            font-weight: 500;
-            text-align: right;
-            padding-right: 8px;
-            color: #2d3748; /* Cor para exibir moeda */
-        }
-
-        /* Flexbox para espaçamento de labels e inputs */
-        .form-group {
-            margin-bottom: 1.5rem; /* Espaçamento entre grupos de formulário */
-        }
-        .form-label {
-            display: block;
-            font-size: 1.1rem; /* Um pouco maior */
-            font-weight: 600;
-            color: #374151; /* Mais escuro */
-            margin-bottom: 0.75rem; /* Espaçamento entre label e input */
+        /* Estilos específicos para impressão */
+        @media print {
+            body > *:not(.budget-preview-container) {
+                display: none !important;
+            }
+            .budget-preview-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background-color: white;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                border: none;
+                overflow: visible;
+            }
+            .budget-preview-container .print\:hidden {
+                display: none !important;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div id="quote-content" class="container">
-        <!-- Cabeçalho do Orçamento -->
-        <div class="flex items-start justify-between mb-10 pb-6 border-b border-gray-100"> <!-- Borda mais suave -->
-            <div class="flex flex-col items-start">
-                <label for="logo-upload" class="custom-file-upload mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-4 4 4 4-4V5h-2.586l-1.707 1.707A1 1 0 0110.293 7H9.707a1 1 0 01-.707-.293L7.414 5H4v10zm-4-9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
-                    </svg>
-                    Escolher arquivo
-                </label>
-                <input type="file" id="logo-upload" accept="image/*" class="hidden">
-                <p id="selected-file-name" class="text-sm text-gray-500">Nenhum arquivo escolhido</p>
-                <img id="logo-preview" src="https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo" alt="Logomarca da Empresa" class="h-24 w-auto mt-6 rounded-lg shadow-md border border-gray-200 object-contain" style="display: none;">
-            </div>
-            <div class="text-right">
-                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">PRIN 3D</h1> <!-- Maior e mais negrito -->
-                <p class="text-gray-600 text-lg">Orçamento</p>
-                <p class="text-gray-600 text-base mt-2">Contato: (83) 9 9910-1520</p>
-            </div>
-        </div>
+<body class="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 flex items-center justify-center font-sans">
 
-        <!-- Detalhes do Cliente -->
-        <div class="form-group">
-            <h2 class="form-label">Cliente:</h2>
-            <input type="text" id="client-name" placeholder="Nome do Cliente" class="text-gray-800">
-        </div>
-        <div class="form-group">
-            <h2 class="form-label">Contato do Cliente:</h2>
-            <input type="text" id="client-contact" placeholder="Telefone/E-mail" class="text-gray-800">
-        </div>
-
-        <!-- Seção de Itens do Orçamento -->
-        <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-6">Itens do Orçamento</h2>
-        <div class="overflow-x-auto rounded-lg border border-gray-200"> <!-- Borda arredondada para a tabela -->
-            <table class="quote-table">
-                <thead>
-                    <tr>
-                        <th class="w-1/4">Item</th>
-                        <th class="w-2/5">Descrição</th>
-                        <th class="w-1/12 text-center">Qtd.</th>
-                        <th class="w-1/8 text-right">Valor Unit.</th>
-                        <th class="w-1/8 text-right">Total</th>
-                        <th class="w-1/12 text-center">Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="product-list">
-                    <!-- Product items will be added here by JavaScript -->
-                </tbody>
-            </table>
-        </div>
-
-        <button id="add-item-btn" class="btn-primary flex items-center mt-6 mb-8">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-            </svg>
-            Adicionar Item
-        </button>
-
-        <!-- Observações -->
-        <div class="form-group">
-            <h2 class="form-label">Observações:</h2>
-            <textarea id="observations" rows="4" placeholder="Termos, condições, prazos de entrega..." class="text-gray-800"></textarea>
-        </div>
-
-        <!-- Condições de Pagamento -->
-        <div class="form-group bg-blue-50 p-6 rounded-lg border border-blue-200">
-            <h2 class="form-label text-blue-800">Condições de Pagamento:</h2>
-            <textarea id="payment-conditions" rows="2" class="text-blue-700 font-medium" readonly>Pagamento de 50% na entrada e 50% na retirada do pedido.</textarea>
-        </div>
-
-        <!-- Total do Orçamento -->
-        <div class="flex justify-end items-center mt-10 p-4 rounded-lg bg-gray-50">
-            <h3 class="text-2xl font-bold text-gray-800 mr-4">Total:</h3>
-            <p id="grand-total" class="text-4xl font-extrabold text-blue-700">R$ 0,00</p>
-        </div>
-
-        <!-- Botões de Ação -->
-        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-10">
-            <button id="download-pdf-btn" class="btn-success flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 10a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                </svg>
-                Gerar PDF
-            </button>
-            <button id="download-image-btn" class="btn-primary flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-                Gerar Imagem
-            </button>
-            <button id="clear-all-btn" class="btn-warning flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm-1 3a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-                Limpar Tudo
+    <!-- Caixa de Mensagem -->
+    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <p id="message-content" class="text-gray-800 text-lg mb-4"></p>
+            <button id="message-ok-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                OK
             </button>
         </div>
     </div>
 
-    <!-- Scripts para html2canvas e jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Preview do Orçamento para Impressão -->
+    <div id="budget-preview-container" class="fixed inset-0 bg-white p-8 overflow-auto z-40 hidden budget-preview-container">
+        <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl print:shadow-none print:border-none">
+            <div class="flex justify-between items-center mb-8 print:hidden">
+                <h2 class="text-3xl font-bold text-gray-800">Visualização do Orçamento</h2>
+                <div>
+                    <button id="generate-image-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 mr-2">
+                        Gerar Imagem (PNG)
+                    </button>
+                    <button id="close-preview-button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105">
+                        Fechar Visualização
+                    </button>
+                </div>
+            </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const productList = document.getElementById('product-list');
-            const addItemBtn = document.getElementById('add-item-btn');
-            const grandTotalDisplay = document.getElementById('grand-total');
-            const logoUpload = document.getElementById('logo-upload');
-            const logoPreview = document.getElementById('logo-preview');
-            const selectedFileNameDisplay = document.getElementById('selected-file-name');
-            const downloadImageBtn = document.getElementById('download-image-btn');
-            const downloadPdfBtn = document.getElementById('download-pdf-btn');
-            const clearAllBtn = document.getElementById('clear-all-btn');
-            const quoteContent = document.getElementById('quote-content');
-            const clientNameInput = document.getElementById('client-name');
-            const clientContactInput = document.getElementById('client-contact');
-            const observationsTextarea = document.getElementById('observations');
-            const paymentConditionsTextarea = document.getElementById('payment-conditions'); // Novo
+            <!-- Conteúdo do Orçamento para Impressão (com ref para captura) -->
+            <div id="budget-content-to-capture" class="p-6 border border-gray-300 rounded-lg bg-white">
+                <div class="flex flex-col items-center mb-8">
+                    <img id="company-logo" src="https://res.cloudinary.com/dwewtoo86/image/upload/v1755360712/Texto_do_seu_par%C3%A1grafo_2_ewy6lv.png" alt="PRIN 3D Logo" class="h-24 mb-4 object-contain" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A0A0A0/FFFFFF?text=PRIN3D'">
+                    <h1 class="text-4xl font-extrabold text-center text-gray-900">PRIN 3D</h1>
+                    <h2 class="text-2xl font-bold text-center text-gray-800 mt-2">ORÇAMENTO</h2>
+                </div>
 
-            // --- Funções Auxiliares ---
+                <div class="mb-6 flex justify-between items-start">
+                    <div>
+                        <p class="text-lg text-gray-700">Data: <span id="budget-date"></span></p>
+                        <p class="text-lg text-gray-700">Emitido por: <span id="budget-user-id"></span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-semibold text-gray-800">Cliente:</p>
+                        <p class="text-md text-gray-700" id="preview-client-name"></p>
+                        <p class="text-md text-gray-700" id="preview-client-phone"></p>
+                    </div>
+                </div>
 
-            // Formata um número para o formato monetário brasileiro (BRL)
-            const formatCurrency = (value) => {
-                return new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    minimumFractionDigits: 2
-                }).format(value);
-            };
+                <table class="min-w-full bg-white border border-gray-300 mb-8">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="py-3 px-4 border-b border-gray-300 text-left text-sm font-semibold text-gray-700 uppercase">Item</th>
+                            <th class="py-3 px-4 border-b border-gray-300 text-center text-sm font-semibold text-gray-700 uppercase">Qtd</th>
+                            <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Preço Unit.</th>
+                            <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budget-items-preview">
+                        <!-- Itens do orçamento serão renderizados aqui -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colSpan="3" class="py-4 px-4 text-right text-xl font-bold text-gray-900">Total Geral:</td>
+                            <td class="py-4 px-4 text-right text-2xl font-extrabold text-blue-700" id="budget-total-preview"></td>
+                        </tr>
+                        <tr>
+                            <td colSpan="3" class="py-2 px-4 text-right text-xl font-bold text-gray-900 border-t border-gray-300">Entrada (50%):</td>
+                            <td class="py-2 px-4 text-right text-2xl font-extrabold text-green-700 border-t border-gray-300" id="budget-downpayment-preview"></td>
+                        </tr>
+                    </tfoot>
+                </table>
 
-            // Remove a formatação de moeda para obter o valor numérico
-            const parseCurrency = (valueString) => {
-                // Remove "R$", pontos de milhar e substitui vírgula por ponto decimal
-                const cleanString = valueString.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
-                return parseFloat(cleanString) || 0;
-            };
+                <p class="text-gray-600 text-sm mt-8 text-center italic">
+                    Este é um orçamento gerado automaticamente. Valores sujeitos a confirmação.
+                    <br />
+                    **Para registro do pedido e início da produção, é necessário o pagamento de 50% do valor total como entrada.**
+                </p>
+            </div>
+          </div>
+        </div>
 
-            // Calcula o total de um item específico
-            const calculateItemTotal = (itemElement) => {
-                const unitValueInput = itemElement.querySelector('.unit-value');
-                const quantityInput = itemElement.querySelector('.quantity');
-                const itemTotalDisplay = itemElement.querySelector('.item-total-display');
+    <!-- Conteúdo principal do aplicativo -->
+    <div id="main-app-container" class="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Gerador de Orçamentos</h1>
 
-                // Garante que os valores sejam numéricos
-                const unitValue = parseCurrency(unitValueInput.value);
-                const quantity = parseInt(quantityInput.value) || 0;
-                const itemTotal = unitValue * quantity;
+        <!-- Exibição do ID do Usuário -->
+        <p class="text-sm text-gray-600 text-center mb-4 break-all">
+            Seu ID de Usuário: <span id="display-user-id" class="font-mono bg-gray-200 px-2 py-1 rounded">Carregando...</span>
+        </p>
 
-                itemTotalDisplay.textContent = formatCurrency(itemTotal);
-                updateGrandTotal(); // Recalcula o total geral após cada item ser atualizado
-            };
+        <!-- Campos para dados do cliente -->
+        <div class="mb-8 p-4 border border-gray-200 rounded-md bg-yellow-50">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Dados do Cliente</h2>
+            <div class="mb-4">
+                <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Cliente:
+                </label>
+                <input
+                    type="text"
+                    id="clientName"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                    placeholder="Ex: João da Silva"
+                />
+            </div>
+            <div class="mb-4">
+                <label for="clientPhone" class="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone para Contato:
+                </label>
+                <input
+                    type="tel"
+                    id="clientPhone"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                    placeholder="Ex: (XX) XXXXX-XXXX"
+                />
+            </div>
+        </div>
 
-            // Atualiza o total geral do orçamento
-            const updateGrandTotal = () => {
-                let grandTotal = 0;
-                document.querySelectorAll('#product-list tr').forEach(row => {
-                    const itemTotalDisplay = row.querySelector('.item-total-display');
-                    const itemTotal = parseCurrency(itemTotalDisplay.textContent);
-                    grandTotal += itemTotal;
+        <!-- Formulário para adicionar novos itens ao orçamento -->
+        <form id="add-item-form" class="mb-8 p-4 border border-gray-200 rounded-md bg-gray-50">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Adicionar Novo Item ao Orçamento</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="itemName" class="block text-sm font-medium text-gray-700 mb-1">
+                        Nome do Item:
+                    </label>
+                    <input
+                        type="text"
+                        id="itemName"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Ex: Serviço de consultoria"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                        Quantidade:
+                    </label>
+                    <input
+                        type="number"
+                        id="quantity"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Ex: 1"
+                        min="1"
+                        required
+                    />
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="unitPrice" class="block text-sm font-medium text-gray-700 mb-1">
+                    Preço Unitário: (R$)
+                </label>
+                <input
+                    type="number"
+                    id="unitPrice"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Ex: 50.00"
+                    step="0.01"
+                    min="0.01"
+                    required
+                />
+            </div>
+            <button
+                type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105"
+            >
+                Adicionar Item
+            </button>
+        </form>
+
+        <!-- Seção para salvar novos templates -->
+        <form id="save-template-form" class="mb-8 p-4 border border-gray-200 rounded-md bg-green-50">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Salvar Novo Item como Template</h2>
+            <div class="mb-4">
+                <label for="templateName" class="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Template:
+                </label>
+                <input
+                    type="text"
+                    id="templateName"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    placeholder="Ex: Consultoria Básica"
+                    required
+                />
+            </div>
+            <div class="mb-4">
+                <label for="templateUnitPrice" class="block text-sm font-medium text-gray-700 mb-1">
+                    Preço Unitário do Template: (R$)
+                </label>
+                <input
+                    type="number"
+                    id="templateUnitPrice"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    placeholder="Ex: 75.00"
+                    step="0.01"
+                    min="0.01"
+                    required
+                />
+            </div>
+            <button
+                type="submit"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105"
+            >
+                Salvar Template
+            </button>
+        </form>
+
+        <!-- Seção para adicionar itens salvos ao orçamento -->
+        <div class="mb-8 p-4 border border-gray-200 rounded-md bg-blue-50">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Adicionar Item Salvo ao Orçamento</h2>
+            <div class="mb-4">
+                <label for="selectTemplate" class="block text-sm font-medium text-gray-700 mb-1">
+                    Selecionar Template:
+                </label>
+                <select
+                    id="selectTemplate"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                    <option value="">-- Selecione um Template --</option>
+                    <!-- Templates serão carregados aqui -->
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="selectedTemplateQuantity" class="block text-sm font-medium text-gray-700 mb-1">
+                    Quantidade:
+                </label>
+                <input
+                    type="number"
+                    id="selectedTemplateQuantity"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Ex: 1"
+                    min="1"
+                />
+            </div>
+            <button
+                id="add-template-to-budget-button"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105"
+            >
+                Adicionar do Template
+            </button>
+        </div>
+
+        <!-- Lista de templates salvos -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Meus Templates Salvos</h2>
+            <ul id="saved-templates-list" class="divide-y divide-gray-200 border border-gray-200 rounded-md">
+                <!-- Templates salvos serão renderizados aqui -->
+            </ul>
+        </div>
+
+        <!-- Lista de itens do orçamento atual -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Itens do Orçamento Atual</h2>
+            <ul id="current-budget-items-list" class="divide-y divide-gray-200 border border-gray-200 rounded-md">
+                <!-- Itens do orçamento atual serão renderizados aqui -->
+            </ul>
+        </div>
+
+        <!-- Resumo do total do orçamento -->
+        <div class="border-t-2 border-gray-300 pt-4 mt-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Total do Orçamento:</h2>
+                <p class="text-2xl font-bold text-blue-700" id="current-total"></p>
+            </div>
+            <button
+                id="generate-budget-button"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105"
+            >
+                Gerar Orçamento para Cliente
+            </button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // Variáveis de estado globais (substituem useState do React)
+        let items = [];
+        let savedTemplates = [];
+        let total = 0;
+        let clientName = '';
+        let clientPhone = '';
+        let message = '';
+        let showBudgetPreview = false;
+
+        // Referências a elementos DOM
+        const messageBox = document.getElementById('message-box');
+        const messageContent = document.getElementById('message-content');
+        const messageOkButton = document.getElementById('message-ok-button');
+        const mainAppContainer = document.getElementById('main-app-container');
+        const budgetPreviewContainer = document.getElementById('budget-preview-container');
+        const budgetContentToCapture = document.getElementById('budget-content-to-capture');
+
+        const itemNameInput = document.getElementById('itemName');
+        const quantityInput = document.getElementById('quantity');
+        const unitPriceInput = document.getElementById('unitPrice');
+        const addItemForm = document.getElementById('add-item-form');
+        const currentBudgetItemsList = document.getElementById('current-budget-items-list');
+        const currentTotalDisplay = document.getElementById('current-total');
+
+        const templateNameInput = document.getElementById('templateName');
+        const templateUnitPriceInput = document.getElementById('templateUnitPrice');
+        const saveTemplateForm = document.getElementById('save-template-form');
+        const savedTemplatesList = document.getElementById('saved-templates-list');
+        const selectTemplateDropdown = document.getElementById('selectTemplate');
+        const selectedTemplateQuantityInput = document.getElementById('selectedTemplateQuantity');
+        const addTemplateToBudgetButton = document.getElementById('add-template-to-budget-button');
+
+        const clientNameInput = document.getElementById('clientName');
+        const clientPhoneInput = document.getElementById('clientPhone');
+
+        const generateBudgetButton = document.getElementById('generate-budget-button');
+        const generateImageButton = document.getElementById('generate-image-button');
+        const closePreviewButton = document.getElementById('close-preview-button');
+
+        const companyName = "PRIN 3D";
+        const companyLogo = "https://res.cloudinary.com/dwewtoo86/image/upload/v1755360712/Texto_do_seu_par%C3%A1grafo_2_ewy6lv.png";
+
+        // --- Funções de Ajuda ---
+
+        function showMessageBox(msg) {
+            messageContent.textContent = msg;
+            messageBox.classList.remove('hidden');
+        }
+
+        function hideMessageBox() {
+            messageBox.classList.add('hidden');
+            messageContent.textContent = '';
+        }
+
+        function calculateTotal() {
+            total = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+            currentTotalDisplay.textContent = `R$ ${total.toFixed(2)}`;
+        }
+
+        function renderBudgetItems() {
+            currentBudgetItemsList.innerHTML = ''; // Limpa a lista
+            if (items.length === 0) {
+                currentBudgetItemsList.innerHTML = '<p class="text-gray-500 text-center italic p-4">Nenhum item adicionado ao orçamento ainda.</p>';
+            } else {
+                items.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center';
+                    listItem.innerHTML = `
+                        <div class="mb-2 sm:mb-0">
+                            <p class="text-lg font-medium text-gray-900">${item.name}</p>
+                            <p class="text-sm text-gray-600">
+                                ${item.quantity} x R$ ${item.unitPrice.toFixed(2)} = R$ ${(item.quantity * item.unitPrice).toFixed(2)}
+                            </p>
+                        </div>
+                        <button data-id="${item.id}" class="remove-item-button bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-1 px-3 rounded-md transition duration-300 ease-in-out">
+                            Remover
+                        </button>
+                    `;
+                    currentBudgetItemsList.appendChild(listItem);
                 });
-                grandTotalDisplay.textContent = formatCurrency(grandTotal);
+                // Adiciona event listeners aos novos botões de remoção
+                document.querySelectorAll('.remove-item-button').forEach(button => {
+                    button.onclick = (e) => handleRemoveItem(parseFloat(e.target.dataset.id));
+                });
+            }
+            calculateTotal();
+        }
+
+        async function loadSavedTemplates() {
+            if (!window.firestoreDb || !window.currentUserId || !window.isAuthReady) {
+                // Tentar carregar novamente se Firebase não estiver pronto
+                // ou mostrar mensagem de carregamento/erro.
+                savedTemplatesList.innerHTML = '<p class="text-gray-500 text-center italic p-4">Carregando templates...</p>';
+                selectTemplateDropdown.innerHTML = '<option value="">-- Carregando Templates --</option>';
+                return;
+            }
+
+            const templatesRef = window.collection(window.firestoreDb, `artifacts/${__app_id}/users/${window.currentUserId}/savedTemplates`);
+            window.onSnapshot(templatesRef, (snapshot) => {
+                savedTemplates = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                renderSavedTemplates();
+                populateTemplateDropdown();
+            }, (error) => {
+                console.error("Erro ao carregar templates salvos:", error);
+                showMessageBox("Erro ao carregar itens salvos.");
+            });
+        }
+
+        function renderSavedTemplates() {
+            savedTemplatesList.innerHTML = '';
+            if (savedTemplates.length === 0) {
+                savedTemplatesList.innerHTML = '<p class="text-gray-500 text-center italic p-4">Nenhum template salvo ainda.</p>';
+            } else {
+                savedTemplates.forEach(template => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center';
+                    listItem.innerHTML = `
+                        <div class="mb-2 sm:mb-0">
+                            <p class="text-lg font-medium text-gray-900">${template.name}</p>
+                            <p class="text-sm text-gray-600">
+                                R$ ${template.unitPrice.toFixed(2)}
+                            </p>
+                        </div>
+                        <button data-id="${template.id}" class="delete-template-button bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-1 px-3 rounded-md transition duration-300 ease-in-out">
+                            Remover Template
+                        </button>
+                    `;
+                    savedTemplatesList.appendChild(listItem);
+                });
+                document.querySelectorAll('.delete-template-button').forEach(button => {
+                    button.onclick = (e) => handleDeleteTemplate(e.target.dataset.id);
+                });
+            }
+        }
+
+        function populateTemplateDropdown() {
+            selectTemplateDropdown.innerHTML = '<option value="">-- Selecione um Template --</option>';
+            savedTemplates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.id;
+                option.textContent = `${template.name} (R$ ${template.unitPrice.toFixed(2)})`;
+                selectTemplateDropdown.appendChild(option);
+            });
+        }
+
+        // --- Funções de Manipulação de Eventos ---
+
+        messageOkButton.onclick = hideMessageBox;
+
+        // Inicialização do Firebase e carregamento de templates
+        window.onload = () => {
+            window.initializeFirebase().then(() => {
+                // Atualiza o ID do usuário após a autenticação
+                document.getElementById('display-user-id').textContent = window.currentUserId;
+            });
+        };
+
+        addItemForm.onsubmit = (e) => {
+            e.preventDefault();
+            const itemName = itemNameInput.value.trim();
+            const quantity = parseFloat(quantityInput.value);
+            const unitPrice = parseFloat(unitPriceInput.value);
+
+            if (itemName === '' || quantity <= 0 || unitPrice <= 0) {
+                showMessageBox('Por favor, preencha todos os campos corretamente (quantidade e preço devem ser maiores que zero).');
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                name: itemName,
+                quantity: quantity,
+                unitPrice: unitPrice,
             };
 
-            // Cria um novo item de produto (linha da tabela)
-            const createProductRow = () => {
+            items.push(newItem);
+            renderBudgetItems();
+            itemNameInput.value = '';
+            quantityInput.value = '';
+            unitPriceInput.value = '';
+        };
+
+        function handleRemoveItem(id) {
+            items = items.filter(item => item.id !== id);
+            renderBudgetItems();
+        }
+
+        saveTemplateForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const templateName = templateNameInput.value.trim();
+            const templateUnitPrice = parseFloat(templateUnitPriceInput.value);
+
+            if (!window.firestoreDb || !window.currentUserId) {
+                showMessageBox('Erro: Banco de dados não disponível ou usuário não autenticado. Tente recarregar a página.');
+                return;
+            }
+            if (templateName === '' || templateUnitPrice <= 0) {
+                showMessageBox('Por favor, preencha o nome do template e um preço unitário válido.');
+                return;
+            }
+
+            try {
+                const savedTemplatesCollectionRef = window.collection(window.firestoreDb, `artifacts/${__app_id}/users/${window.currentUserId}/savedTemplates`);
+                await window.addDoc(savedTemplatesCollectionRef, {
+                    name: templateName,
+                    unitPrice: templateUnitPrice,
+                    createdAt: new Date(),
+                });
+                showMessageBox('Item salvo como template com sucesso!');
+                templateNameInput.value = '';
+                templateUnitPriceInput.value = '';
+            } catch (error) {
+                console.error("Erro ao salvar template:", error);
+                showMessageBox("Erro ao salvar o item como template.");
+            }
+        };
+
+        addTemplateToBudgetButton.onclick = () => {
+            const selectedTemplateId = selectTemplateDropdown.value;
+            const selectedTemplateQuantity = parseFloat(selectedTemplateQuantityInput.value);
+
+            if (selectedTemplateId === '' || selectedTemplateQuantity <= 0) {
+                showMessageBox('Por favor, selecione um template e insira uma quantidade válida.');
+                return;
+            }
+
+            const templateToAdd = savedTemplates.find(template => template.id === selectedTemplateId);
+            if (templateToAdd) {
+                const newItem = {
+                    id: Date.now(),
+                    name: templateToAdd.name,
+                    quantity: selectedTemplateQuantity,
+                    unitPrice: templateToAdd.unitPrice,
+                };
+                items.push(newItem);
+                renderBudgetItems();
+                selectTemplateDropdown.value = '';
+                selectedTemplateQuantityInput.value = '';
+            } else {
+                showMessageBox('Template selecionado não encontrado.');
+            }
+        };
+
+        function handleDeleteTemplate(templateId) {
+            if (!window.firestoreDb || !window.currentUserId) {
+                showMessageBox('Erro: Banco de dados não disponível ou usuário não autenticado.');
+                return;
+            }
+            try {
+                window.deleteDoc(window.doc(window.firestoreDb, `artifacts/${__app_id}/users/${window.currentUserId}/savedTemplates`, templateId));
+                showMessageBox('Template removido com sucesso!');
+            } catch (error) {
+                console.error("Erro ao remover template:", error);
+                showMessageBox("Erro ao remover o template.");
+            }
+        }
+
+        generateBudgetButton.onclick = () => {
+            if (items.length === 0) {
+                showMessageBox('Por favor, adicione itens ao orçamento antes de gerar a visualização.');
+                return;
+            }
+            clientName = clientNameInput.value;
+            clientPhone = clientPhoneInput.value;
+            
+            document.getElementById('budget-date').textContent = new Date().toLocaleDateString();
+            document.getElementById('budget-user-id').textContent = window.currentUserId;
+            document.getElementById('preview-client-name').textContent = clientName || 'Não Informado';
+            document.getElementById('preview-client-phone').textContent = clientPhone || 'Não Informado';
+
+            const budgetItemsPreviewTable = document.getElementById('budget-items-preview');
+            budgetItemsPreviewTable.innerHTML = '';
+            items.forEach(item => {
                 const row = document.createElement('tr');
-                row.classList.add('product-row'); // Adiciona uma classe para fácil seleção
-
+                row.className = 'bg-white'; // ou bg-gray-50 para linhas alternadas
                 row.innerHTML = `
-                    <td><input type="text" class="product-name" placeholder="Nome do produto"></td>
-                    <td><textarea class="description" rows="1" placeholder="Descrição"></textarea></td>
-                    <td><input type="number" class="quantity text-center" value="1" min="1"></td>
-                    <td><input type="text" class="unit-value text-right" placeholder="0,00" inputmode="decimal"></td>
-                    <td class="item-total-display currency-display">R$ 0,00</td>
-                    <td class="text-center"><button class="remove-item-btn btn-danger text-sm px-2 py-1">X</button></td>
+                    <td class="py-3 px-4 border-b border-gray-300 text-gray-800">${item.name}</td>
+                    <td class="py-3 px-4 border-b border-gray-300 text-center text-gray-800">${item.quantity}</td>
+                    <td class="py-3 px-4 border-b border-gray-300 text-right text-gray-800">R$ ${item.unitPrice.toFixed(2)}</td>
+                    <td class="py-3 px-4 border-b border-gray-300 text-right text-gray-800">R$ ${(item.quantity * item.unitPrice).toFixed(2)}</td>
                 `;
-
-                // Adiciona listeners para os campos de entrada do novo item
-                const unitValueInput = row.querySelector('.unit-value');
-                const quantityInput = row.querySelector('.quantity');
-                const removeItemBtn = row.querySelector('.remove-item-btn');
-
-                // Mask for currency input
-                unitValueInput.addEventListener('input', (e) => {
-                    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                    if (value.length > 2) {
-                        value = value.replace(/(\d+)(\d{2})$/, '$1,$2'); // Add comma for cents
-                        if (value.length > 6) { // Add thousand separator
-                            value = value.replace(/(\d)(?=(\d{3})+,)/g, '$1.');
-                        }
-                    } else if (value.length === 1) {
-                        value = '0,0' + value;
-                    } else if (value.length === 2) {
-                        value = '0,' + value;
-                    }
-                    e.target.value = value;
-                    calculateItemTotal(row);
-                });
-                unitValueInput.addEventListener('focus', (e) => {
-                    // Remove R$ and keep just the number for editing
-                    if (e.target.value.includes('R$')) {
-                        e.target.value = parseCurrency(e.target.value).toFixed(2).replace('.', ',');
-                    }
-                });
-                unitValueInput.addEventListener('blur', (e) => {
-                    // Format back to currency on blur
-                    e.target.value = formatCurrency(parseCurrency(e.target.value));
-                });
-
-
-                quantityInput.addEventListener('input', () => calculateItemTotal(row));
-
-                removeItemBtn.addEventListener('click', () => {
-                    row.remove();
-                    updateGrandTotal();
-                });
-
-                // Inicializa o valor total do item
-                calculateItemTotal(row);
-
-                return row;
-            };
-
-            // Adiciona um novo item de produto ao orçamento
-            const addItem = () => {
-                const newRow = createProductRow();
-                productList.appendChild(newRow);
-                updateGrandTotal();
-            };
-
-            // Limpa todos os campos do formulário
-            const clearAll = () => {
-                clientNameInput.value = '';
-                clientContactInput.value = '';
-                observationsTextarea.value = '';
-                paymentConditionsTextarea.value = 'Pagamento de 50% na entrada e 50% na retirada do pedido.'; // Resetar condições de pagamento
-
-                // Remove todos os itens da tabela
-                while (productList.firstChild) {
-                    productList.removeChild(productList.firstChild);
-                }
-                // Adiciona um item vazio para começar
-                addItem();
-
-                // Resetar a logomarca
-                logoPreview.src = "https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo";
-                logoPreview.style.display = 'none';
-                selectedFileNameDisplay.textContent = "Nenhum arquivo escolhido";
-                logoUpload.value = ''; // Limpa o input file
-
-                updateGrandTotal();
-            };
-
-            // --- Event Listeners ---
-
-            addItemBtn.addEventListener('click', addItem);
-            clearAllBtn.addEventListener('click', clearAll);
-
-            logoUpload.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        logoPreview.src = e.target.result;
-                        logoPreview.style.display = 'block'; // Mostra a imagem
-                    };
-                    reader.readAsDataURL(file);
-                    selectedFileNameDisplay.textContent = file.name;
-                } else {
-                    logoPreview.src = "https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo";
-                    logoPreview.style.display = 'none';
-                    selectedFileNameDisplay.textContent = "Nenhum arquivo escolhido";
-                }
+                budgetItemsPreviewTable.appendChild(row);
             });
+            document.getElementById('budget-total-preview').textContent = `R$ ${total.toFixed(2)}`;
+            document.getElementById('budget-downpayment-preview').textContent = `R$ ${(total * 0.5).toFixed(2)}`;
 
-            // Listener para o botão "Gerar Imagem"
-            downloadImageBtn.addEventListener('click', async () => {
-                // Esconde os botões para a captura da imagem/PDF
-                const buttonsToHide = [addItemBtn, downloadImageBtn, downloadPdfBtn, clearAllBtn];
-                const removeBtns = document.querySelectorAll('.remove-item-btn');
-                
-                buttonsToHide.forEach(btn => btn.style.display = 'none');
-                removeBtns.forEach(btn => btn.style.display = 'none');
+            mainAppContainer.classList.add('hidden');
+            budgetPreviewContainer.classList.remove('hidden');
+        };
 
-                try {
-                    const canvas = await html2canvas(quoteContent, { scale: 2, logging: false, useCORS: true });
-                    const image = canvas.toDataURL('image/png');
-                    const link = document.createElement('a');
-                    link.href = image;
-                    link.download = 'orcamento_PRIN3D.png';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } catch (error) {
-                    console.error('Erro ao gerar imagem:', error);
-                    // Use um modal ou div de mensagem no lugar de alert()
-                    const messageBox = document.createElement('div');
-                    messageBox.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb; z-index: 1000;';
-                    messageBox.textContent = 'Não foi possível gerar a imagem do orçamento. Por favor, tente novamente.';
-                    document.body.appendChild(messageBox);
-                    setTimeout(() => messageBox.remove(), 3000); // Remove após 3 segundos
-                } finally {
-                    // Restaura a visibilidade dos botões
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    removeBtns.forEach(btn => btn.style.display = '');
-                }
+        closePreviewButton.onclick = () => {
+            budgetPreviewContainer.classList.add('hidden');
+            mainAppContainer.classList.remove('hidden');
+        };
+
+        generateImageButton.onclick = () => {
+            if (!budgetContentToCapture) {
+                showMessageBox('Erro: Conteúdo do orçamento não encontrado para gerar a imagem.');
+                return;
+            }
+
+            if (typeof window.html2canvas === 'undefined') {
+                showMessageBox('Aguarde... a biblioteca de geração de imagem está carregando.');
+                return;
+            }
+
+            const buttonsToHide = budgetContentToCapture.closest('.max-w-3xl').querySelectorAll('.print\\:hidden');
+            buttonsToHide.forEach(btn => btn.style.visibility = 'hidden');
+
+            window.html2canvas(budgetContentToCapture, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+            }).then(canvas => {
+                buttonsToHide.forEach(btn => btn.style.visibility = 'visible');
+
+                const image = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `orcamento-${clientName || 'cliente'}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showMessageBox('Imagem do orçamento gerada com sucesso!');
+            }).catch(error => {
+                console.error("Erro ao gerar imagem:", error);
+                showMessageBox("Erro ao gerar a imagem do orçamento. Verifique o console para detalhes.");
+                buttonsToHide.forEach(btn => btn.style.visibility = 'visible');
             });
+        };
 
-            // Listener para o botão "Gerar PDF"
-            downloadPdfBtn.addEventListener('click', async () => {
-                const { jsPDF } = window.jspdf;
+        // Renderização inicial
+        renderBudgetItems();
 
-                // Esconde os botões para a captura da imagem/PDF
-                const buttonsToHide = [addItemBtn, downloadImageBtn, downloadPdfBtn, clearAllBtn];
-                const removeBtns = document.querySelectorAll('.remove-item-btn');
-                
-                buttonsToHide.forEach(btn => btn.style.display = 'none');
-                removeBtns.forEach(btn => btn.style.display = 'none');
-
-                try {
-                    const canvas = await html2canvas(quoteContent, { scale: 2, logging: false, useCORS: true });
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' size
-
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
-
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-
-                    // Para conteúdo que excede uma página
-                    while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-
-                    pdf.save('orcamento_PRIN3D.pdf');
-                } catch (error) {
-                    console.error('Erro ao gerar PDF:', error);
-                    // Use um modal ou div de mensagem no lugar de alert()
-                    const messageBox = document.createElement('div');
-                    messageBox.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb; z-index: 1000;';
-                    messageBox.textContent = 'Não foi possível gerar o PDF do orçamento. Por favor, tente novamente.';
-                    document.body.appendChild(messageBox);
-                    setTimeout(() => messageBox.remove(), 3000); // Remove após 3 segundos
-                } finally {
-                    // Restaura a visibilidade dos botões
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    removeBtns.forEach(btn => btn.style.display = '');
-                }
-            });
-
-            // Adiciona o primeiro item quando a página carrega
-            addItem();
-        });
     </script>
 </body>
 </html>
