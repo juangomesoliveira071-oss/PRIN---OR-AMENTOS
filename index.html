@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Orçamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca para gerar a imagem a partir do HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLmbG0C+wFjr8bCqwAUPg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo customizado para o botão de upload */
+        .file-input-button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Gerador de Orçamentos</h1>
+            <p class="text-gray-600 mt-2">Preencha os campos abaixo para criar um orçamento profissional.</p>
+        </header>
+
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Coluna da Esquerda -->
+                <div class="space-y-4">
+                    <div>
+                        <label for="yourName" class="block text-sm font-medium text-gray-700 mb-1">Seu Nome / Nome da Empresa</label>
+                        <input type="text" id="yourName" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: João Silva ME">
+                    </div>
+                    <div>
+                        <label for="yourContact" class="block text-sm font-medium text-gray-700 mb-1">Seu Contato (E-mail / Telefone)</label>
+                        <input type="text" id="yourContact" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="contato@email.com | (11) 98765-4321">
+                    </div>
+                    <div>
+                        <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
+                        <input type="text" id="clientName" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Maria Souza">
+                    </div>
+                     <div>
+                        <label for="quoteValidity" class="block text-sm font-medium text-gray-700 mb-1">Validade do Orçamento (dias)</label>
+                        <input type="number" id="quoteValidity" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: 7" value="7">
+                    </div>
+                     <div>
+                        <label for="logoUpload" class="block text-sm font-medium text-gray-700 mb-1">Sua Logomarca</label>
+                        <input type="file" id="logoUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file-input-button"/>
+                    </div>
+                </div>
+                <!-- Coluna da Direita -->
+                <div class="space-y-4 flex flex-col">
+                    <div class="flex-grow">
+                        <label for="serviceDescription" class="block text-sm font-medium text-gray-700 mb-1">Itens / Descrição dos Serviços</label>
+                        <textarea id="serviceDescription" rows="5" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Descreva cada item ou serviço em uma nova linha.&#10;Ex: Criação de Logotipo&#10;Ex: Design de Cartão de Visitas"></textarea>
+                    </div>
+                    <!-- NOVO CAMPO: Formas de Pagamento -->
+                    <div>
+                        <label for="paymentTerms" class="block text-sm font-medium text-gray-700 mb-1">Formas de Pagamento</label>
+                        <textarea id="paymentTerms" rows="2" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Ex: 50% de entrada, 50% na entrega."></textarea>
+                    </div>
+                    <!-- NOVO CAMPO: Observações -->
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                        <textarea id="notes" rows="2" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Ex: Material não incluso."></textarea>
+                    </div>
+                    <div>
+                        <label for="totalValue" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
+                        <input type="number" id="totalValue" step="0.01" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: 1500.50">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <button id="generateButton" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105">
+                    Gerar Orçamento
+                </button>
+            </div>
+        </div>
+
+        <!-- Área de Exibição do Orçamento -->
+        <div id="quoteOutputWrapper" class="hidden">
+            <div id="quoteOutput" class="bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border border-gray-200">
+                <!-- Cabeçalho do Orçamento -->
+                <div class="flex justify-between items-start pb-6 border-b">
+                    <div class="flex items-center">
+                        <img id="outputLogo" class="hidden h-16 w-auto mr-5" alt="Logomarca da Empresa">
+                        <div>
+                            <h2 id="outputYourName" class="text-2xl font-bold text-gray-900">Seu Nome / Empresa</h2>
+                            <p id="outputYourContact" class="text-gray-600">Seu Contato</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <h3 class="text-3xl font-bold text-gray-800 tracking-wider">ORÇAMENTO</h3>
+                        <p id="outputQuoteNumber" class="text-gray-500 mt-1">Nº: 00000000</p>
+                        <p id="outputDate" class="text-gray-500">Data: DD/MM/AAAA</p>
+                    </div>
+                </div>
+
+                <div class="my-8">
+                    <p class="text-gray-600 font-medium">Para:</p>
+                    <p id="outputClientName" class="text-xl font-semibold text-gray-800">Nome do Cliente</p>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Descrição dos Itens/Serviços</h4>
+                    <div id="outputServiceDescription" class="text-gray-700 whitespace-pre-wrap min-h-[80px]"></div>
+                </div>
+                
+                <!-- SEÇÃO FORMAS DE PAGAMENTO -->
+                <div class="mt-8">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Formas de Pagamento</h4>
+                    <p id="outputPaymentTerms" class="text-gray-700 whitespace-pre-wrap">A ser combinado.</p>
+                </div>
+
+                <div class="mt-8 pt-6 border-t-2 border-dashed flex justify-end">
+                    <div class="text-right">
+                        <p class="text-gray-600 font-medium">VALOR TOTAL</p>
+                        <p id="outputTotalValue" class="text-3xl font-bold text-blue-600">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <!-- RODAPÉ E OBSERVAÇÕES -->
+                <div class="mt-10 pt-6 border-t text-sm text-gray-500">
+                    <div id="notesWrapper" class="hidden mb-4 text-left">
+                        <p class="font-semibold">Observações:</p>
+                        <p id="outputNotes" class="whitespace-pre-wrap"></p>
+                    </div>
+                    <div class="text-center">
+                        <p>Este orçamento é válido por <strong id="outputValidity">7</strong> dias a partir da data de emissão.</p>
+                        <p class="mt-1">Agradecemos pela sua preferência!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-6">
+                 <button id="saveImageButton" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 transform hover:scale-105">
+                    Salvar como Imagem (.png)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const generateButton = document.getElementById('generateButton');
+        const saveImageButton = document.getElementById('saveImageButton');
+        const quoteOutputWrapper = document.getElementById('quoteOutputWrapper');
+        const quoteOutput = document.getElementById('quoteOutput');
+        const logoUpload = document.getElementById('logoUpload');
+        
+        let logoDataUrl = null;
+
+        logoUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    logoDataUrl = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                logoDataUrl = null;
+            }
+        });
+
+        generateButton.addEventListener('click', () => {
+            // Pega os valores dos inputs
+            const yourName = document.getElementById('yourName').value;
+            const yourContact = document.getElementById('yourContact').value;
+            const clientName = document.getElementById('clientName').value;
+            const quoteValidity = document.getElementById('quoteValidity').value;
+            const serviceDescription = document.getElementById('serviceDescription').value;
+            const totalValue = parseFloat(document.getElementById('totalValue').value);
+            const paymentTerms = document.getElementById('paymentTerms').value;
+            const notes = document.getElementById('notes').value;
+
+            if (!yourName || !clientName || !serviceDescription || isNaN(totalValue)) {
+                alert('Por favor, preencha todos os campos obrigatórios: Seu Nome, Nome do Cliente, Descrição e Valor Total.');
+                return;
+            }
+
+            // Seleciona os elementos de output
+            const outputYourName = document.getElementById('outputYourName');
+            const outputYourContact = document.getElementById('outputYourContact');
+            const outputQuoteNumber = document.getElementById('outputQuoteNumber');
+            const outputDate = document.getElementById('outputDate');
+            const outputClientName = document.getElementById('outputClientName');
+            const outputServiceDescription = document.getElementById('outputServiceDescription');
+            const outputPaymentTerms = document.getElementById('outputPaymentTerms');
+            const outputTotalValue = document.getElementById('outputTotalValue');
+            const outputValidity = document.getElementById('outputValidity');
+            const outputLogo = document.getElementById('outputLogo');
+            const outputNotes = document.getElementById('outputNotes');
+            const notesWrapper = document.getElementById('notesWrapper');
+            
+            // Gera dados e formata
+            const quoteNumber = Date.now().toString().slice(-8);
+            const today = new Date();
+            const formattedDate = today.toLocaleDateString('pt-BR');
+            const formattedValue = totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            // Atualiza o HTML com os valores
+            outputYourName.innerText = yourName;
+            outputYourContact.innerText = yourContact;
+            outputQuoteNumber.innerText = `Nº: ${quoteNumber}`;
+            outputDate.innerText = `Data: ${formattedDate}`;
+            outputClientName.innerText = clientName;
+            outputServiceDescription.innerText = serviceDescription;
+            outputPaymentTerms.innerText = paymentTerms || 'A ser combinado.';
+            outputTotalValue.innerText = formattedValue;
+            outputValidity.innerText = quoteValidity || '7';
+
+            if (logoDataUrl) {
+                outputLogo.src = logoDataUrl;
+                outputLogo.classList.remove('hidden');
+            } else {
+                outputLogo.classList.add('hidden');
+            }
+            
+            if (notes) {
+                outputNotes.innerText = notes;
+                notesWrapper.classList.remove('hidden');
+            } else {
+                notesWrapper.classList.add('hidden');
+            }
+
+            quoteOutputWrapper.classList.remove('hidden');
+            quoteOutputWrapper.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        saveImageButton.addEventListener('click', () => {
+            setTimeout(() => {
+                html2canvas(quoteOutput, { 
+                    scale: 2,
+                    useCORS: true 
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    const clientNameForFile = document.getElementById('clientName').value.replace(/ /g, '_') || 'cliente';
+                    link.download = `orcamento-${clientNameForFile}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }, 100);
+        });
+    </script>
+
+</body>
+</html>
