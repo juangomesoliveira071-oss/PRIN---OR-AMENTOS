@@ -23,6 +23,7 @@
         window.initializeFirebase = async () => {
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            // CORREÇÃO: Usar __initial_auth_token no lado direito da expressão.
             const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
             try {
@@ -66,8 +67,8 @@
     </script>
     <!-- html2canvas CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-            xintegrity="sha512-BNaRQnYJtSwHD3H7lFTNAsnpakIRVcOQIRpnADuFVcbPHzVcFxXFLpvN3ru0ppS5JAwHTyJVhFPUGfdFrHhFXg=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            xintegrity="sha512-BNaRQnYJtSwHD3H7lFTNAsnpakIRVcOQIRpnADuFVcbPHzVcFxXFLpvN3ru0ppS5JAwHTyJVhFPUGfdFrHhFXg==
+            "crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <style>
         /* Estilos específicos para impressão */
@@ -97,7 +98,7 @@
 <body class="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 flex items-center justify-center font-sans">
 
     <!-- Caixa de Mensagem -->
-    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity50 flex items-center justify-center z-50 hidden">
+    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
             <p id="message-content" class="text-gray-800 text-lg mb-4"></p>
             <button id="message-ok-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
@@ -107,8 +108,8 @@
     </div>
 
     <!-- Preview do Orçamento para Impressão -->
-    <div id="budget-preview-container" class="fixed inset-0 bg-white p-8 overflow-auto z-40 hidden budget-preview-container">
-        <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl print:shadow-none print:border-none">
+    <div id="budget-preview-container" class="fixed inset-0 bg-white p-4 sm:p-8 overflow-auto z-40 hidden budget-preview-container">
+        <div class="max-w-full sm:max-w-lg md:max-w-3xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xl print:shadow-none print:border-none">
             <div class="flex justify-between items-center mb-8 print:hidden">
                 <h2 class="text-3xl font-bold text-gray-800">Visualização do Orçamento</h2>
                 <div>
@@ -129,12 +130,12 @@
                     <h2 class="text-2xl font-bold text-center text-gray-800 mt-2">ORÇAMENTO</h2>
                 </div>
 
-                <div class="mb-6 flex justify-between items-start">
-                    <div>
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div class="mb-4 sm:mb-0">
                         <p class="text-lg text-gray-700">Data: <span id="budget-date"></span></p>
                         <p class="text-lg text-gray-700">Emitido por: <span id="budget-user-id"></span></p>
                     </div>
-                    <div class="text-right">
+                    <div class="text-left sm:text-right w-full sm:w-auto">
                         <p class="text-lg font-semibold text-gray-800">Cliente:</p>
                         <p class="text-md text-gray-700" id="preview-client-name"></p>
                         <p class="text-md text-gray-700" id="preview-client-phone"></p>
