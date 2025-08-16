@@ -3,470 +3,554 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRIN 3D - Gerador de Orçamentos</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <title>Gerador de Orçamentos PRIN 3D</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Alinha no topo para que o conteúdo não fique esmagado em telas pequenas */
+            min-height: 100vh;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            border-radius: 5px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-        }
-        .logo-container {
-            text-align: center;
-        }
-        .logo-preview {
-            max-width: 150px;
-            max-height: 100px;
-            margin-bottom: 10px;
-        }
-        .company-info {
-            text-align: right;
-        }
-        h1 {
-            color: #2c3e50;
-            margin: 0;
-        }
-        .contact {
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, textarea, select {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Mais sombra para um visual moderno */
+            padding: 40px; /* Mais padding */
+            max-width: 950px; /* Ligeiramente mais largo */
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            margin: 20px auto;
         }
-        textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        .items-table {
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            border: 1px solid #e2e8f0; /* Menos contraste, mais suave */
+            border-radius: 8px;
+            padding: 12px 16px; /* Mais padding para campos maiores */
             width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            color: #1f2937;
+            font-size: 1rem;
         }
-        .items-table th, .items-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Sombra mais sutil no foco */
         }
-        .items-table th {
-            background-color: #f2f2f2;
-        }
-        .add-item {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+        button {
+            padding: 12px 24px; /* Mais padding para botões */
+            border-radius: 10px; /* Cantos mais arredondados */
+            font-weight: 600;
             cursor: pointer;
-            margin-bottom: 20px;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Sombra mais pronunciada nos botões */
         }
-        .add-item:hover {
-            background-color: #2980b9;
+        button:hover {
+            transform: translateY(-2px); /* Mais destaque no hover */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
         }
-        .remove-item {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
+        .btn-primary {
+            background-color: #3b82f6;
+            color: #ffffff;
         }
-        .total {
-            font-size: 18px;
-            font-weight: bold;
-            text-align: right;
-            margin-top: 10px;
+        .btn-primary:hover {
+            background-color: #2563eb;
         }
-        .actions {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+        .btn-secondary {
+            background-color: #6b7280;
+            color: #ffffff;
         }
-        .btn {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
+        .btn-secondary:hover {
+            background-color: #4b5563;
         }
-        .btn-pdf {
-            background-color: #27ae60;
-            color: white;
+        .btn-danger {
+            background-color: #ef4444;
+            color: #ffffff;
         }
-        .btn-img {
-            background-color: #3498db;
-            color: white;
+        .btn-danger:hover {
+            background-color: #dc2626;
         }
-        .btn-reset {
-            background-color: #e67e22;
-            color: white;
+        .btn-success {
+            background-color: #10b981;
+            color: #ffffff;
         }
-        .btn:hover {
-            opacity: 0.9;
+        .btn-success:hover {
+            background-color: #059669;
         }
-        #preview {
-            margin-top: 30px;
-            padding: 20px;
-            background: white;
-            border: 1px solid #ddd;
+        .btn-warning {
+            background-color: #f59e0b;
+            color: #ffffff;
+        }
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        /* Custom styling for file input for better appearance */
+        input[type="file"] {
             display: none;
         }
-        .preview-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
+        .custom-file-upload {
+            border: 1px solid #cbd5e1; /* Cor mais suave */
+            border-radius: 8px;
+            padding: 10px 14px; /* Ajuste no padding */
+            display: inline-flex; /* Para alinhar o ícone se houver */
+            align-items: center;
+            gap: 8px; /* Espaçamento entre texto e ícone */
+            cursor: pointer;
+            background-color: #fefefe; /* Branco quase puro */
+            color: #4b5563;
+            transition: background-color 0.2s ease-in-out;
+            font-size: 0.9rem; /* Levemente maior */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra sutil */
         }
-        .preview-logo {
-            max-width: 120px;
-            max-height: 80px;
+        .custom-file-upload:hover {
+            background-color: #f1f5f9; /* Suave no hover */
         }
-        .preview-title {
-            text-align: center;
-            margin: 20px 0;
-        }
-        .preview-table {
+
+        /* Table specific styles */
+        .quote-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate; /* Para border-radius nas células */
+            border-spacing: 0;
+            margin-bottom: 2rem; /* Mais espaçamento */
         }
-        .preview-table th, .preview-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+        .quote-table th, .quote-table td {
+            padding: 16px; /* Mais padding na tabela */
+            border-bottom: 1px solid #e2e8f0; /* Cor mais suave */
+            text-align: left;
         }
-        .preview-table th {
-            background-color: #f2f2f2;
+        .quote-table th {
+            background-color: #f8fafc; /* Ligeiramente mais claro */
+            font-weight: 600;
+            color: #475569; /* Cinza mais escuro para melhor contraste */
+            text-transform: uppercase;
+            font-size: 0.85rem; /* Um pouco menor para headers */
+            letter-spacing: 0.05em; /* Espaçamento entre letras */
         }
-        .preview-total {
-            font-weight: bold;
+        .quote-table thead tr:first-child th:first-child { border-top-left-radius: 8px; }
+        .quote-table thead tr:first-child th:last-child { border-top-right-radius: 8px; }
+        .quote-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .quote-table input[type="text"],
+        .quote-table input[type="number"],
+        .quote-table textarea {
+            border: 1px solid transparent; /* Transparente por padrão */
+            padding: 10px;
+            font-size: 0.95rem;
+            background-color: transparent; /* Transparente */
+            resize: vertical; /* Permitir redimensionar textarea */
+        }
+        .quote-table input[type="text"]:focus,
+        .quote-table input[type="number"]:focus,
+        .quote-table textarea:focus {
+            box-shadow: none;
+            border-color: #a7d3f9; /* Azul claro no foco */
+            background-color: #e0f2fe; /* Fundo azul claro no foco */
+        }
+        .remove-item-btn {
+            background-color: #fef2f2; /* Fundo vermelho claro */
+            color: #ef4444; /* Texto vermelho */
+            padding: 8px 12px; /* Mais padding */
+            border-radius: 6px; /* Mais arredondado */
+            font-size: 0.8rem;
+            box-shadow: none; /* Sem sombra nos botões da tabela */
+        }
+        .remove-item-btn:hover {
+            background-color: #fee2e2; /* Fundo mais escuro no hover */
+            transform: none; /* Sem transform para botões menores */
+            box-shadow: none;
+        }
+        .currency-display {
+            font-weight: 500;
             text-align: right;
-            margin-top: 20px;
+            padding-right: 8px;
+            color: #2d3748; /* Cor para exibir moeda */
         }
-        .preview-footer {
-            margin-top: 30px;
-            padding-top: 10px;
-            border-top: 1px solid #eee;
-            font-size: 12px;
-            text-align: center;
+
+        /* Flexbox para espaçamento de labels e inputs */
+        .form-group {
+            margin-bottom: 1.5rem; /* Espaçamento entre grupos de formulário */
+        }
+        .form-label {
+            display: block;
+            font-size: 1.1rem; /* Um pouco maior */
+            font-weight: 600;
+            color: #374151; /* Mais escuro */
+            margin-bottom: 0.75rem; /* Espaçamento entre label e input */
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo-container">
-                <div id="logo-preview-container">
-                    <img id="logo-preview" class="logo-preview" src="" alt="Logo" style="display: none;">
-                </div>
-                <input type="file" id="logo-upload" accept="image/*">
+<body class="bg-gray-100 p-4">
+    <div id="quote-content" class="container">
+        <!-- Cabeçalho do Orçamento -->
+        <div class="flex items-start justify-between mb-10 pb-6 border-b border-gray-100"> <!-- Borda mais suave -->
+            <div class="flex flex-col items-start">
+                <label for="logo-upload" class="custom-file-upload mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-4 4 4 4-4V5h-2.586l-1.707 1.707A1 1 0 0110.293 7H9.707a1 1 0 01-.707-.293L7.414 5H4v10zm-4-9a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                    </svg>
+                    Escolher arquivo
+                </label>
+                <input type="file" id="logo-upload" accept="image/*" class="hidden">
+                <p id="selected-file-name" class="text-sm text-gray-500">Nenhum arquivo escolhido</p>
+                <img id="logo-preview" src="https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo" alt="Logomarca da Empresa" class="h-24 w-auto mt-6 rounded-lg shadow-md border border-gray-200 object-contain" style="display: none;">
             </div>
-            <div class="company-info">
-                <h1>PRIN 3D</h1>
-                <div class="contact">(83) 9 9910-1520</div>
+            <div class="text-right">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">PRIN 3D</h1> <!-- Maior e mais negrito -->
+                <p class="text-gray-600 text-lg">Orçamento</p>
+                <p class="text-gray-600 text-base mt-2">Contato: (83) 9 9910-1520</p>
             </div>
         </div>
 
+        <!-- Detalhes do Cliente -->
         <div class="form-group">
-            <label for="client-name">Cliente:</label>
-            <input type="text" id="client-name" placeholder="Nome do cliente">
+            <h2 class="form-label">Cliente:</h2>
+            <input type="text" id="client-name" placeholder="Nome do Cliente" class="text-gray-800">
+        </div>
+        <div class="form-group">
+            <h2 class="form-label">Contato do Cliente:</h2>
+            <input type="text" id="client-contact" placeholder="Telefone/E-mail" class="text-gray-800">
         </div>
 
-        <div class="form-group">
-            <label for="client-contact">Contato do Cliente:</label>
-            <input type="text" id="client-contact" placeholder="Telefone/E-mail">
+        <!-- Seção de Itens do Orçamento -->
+        <h2 class="text-2xl font-semibold text-gray-800 mt-8 mb-6">Itens do Orçamento</h2>
+        <div class="overflow-x-auto rounded-lg border border-gray-200"> <!-- Borda arredondada para a tabela -->
+            <table class="quote-table">
+                <thead>
+                    <tr>
+                        <th class="w-1/4">Item</th>
+                        <th class="w-2/5">Descrição</th>
+                        <th class="w-1/12 text-center">Qtd.</th>
+                        <th class="w-1/8 text-right">Valor Unit.</th>
+                        <th class="w-1/8 text-right">Total</th>
+                        <th class="w-1/12 text-center">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="product-list">
+                    <!-- Product items will be added here by JavaScript -->
+                </tbody>
+            </table>
         </div>
 
-        <h3>Itens do Orçamento</h3>
-        <table class="items-table" id="items-table">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Descrição</th>
-                    <th>Quantidade</th>
-                    <th>Valor Unitário</th>
-                    <th>Total</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody id="items-body">
-                <tr>
-                    <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
-                    <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
-                    <td><input type="number" class="item-quantity" min="1" value="1"></td>
-                    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
-                    <td class="item-total">R$ 0,00</td>
-                    <td><button class="remove-item">×</button></td>
-                </tr>
-            </tbody>
-        </table>
-        <button class="add-item" id="add-item">+ Adicionar Item</button>
+        <button id="add-item-btn" class="btn-primary flex items-center mt-6 mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Adicionar Item
+        </button>
 
-        <div class="total" id="grand-total">Total: R$ 0,00</div>
-
+        <!-- Observações -->
         <div class="form-group">
-            <label for="notes">Observações:</label>
-            <textarea id="notes" placeholder="Termos, condições, prazos de entrega..."></textarea>
+            <h2 class="form-label">Observações:</h2>
+            <textarea id="observations" rows="4" placeholder="Termos, condições, prazos de entrega..." class="text-gray-800"></textarea>
         </div>
 
-        <div class="actions">
-            <button class="btn btn-pdf" id="generate-pdf">Gerar PDF</button>
-            <button class="btn btn-img" id="generate-img">Gerar Imagem</button>
-            <button class="btn btn-reset" id="reset-form">Limpar Tudo</button>
+        <!-- Condições de Pagamento -->
+        <div class="form-group bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <h2 class="form-label text-blue-800">Condições de Pagamento:</h2>
+            <textarea id="payment-conditions" rows="2" class="text-blue-700 font-medium" readonly>Pagamento de 50% na entrada e 50% na retirada do pedido.</textarea>
+        </div>
+
+        <!-- Total do Orçamento -->
+        <div class="flex justify-end items-center mt-10 p-4 rounded-lg bg-gray-50">
+            <h3 class="text-2xl font-bold text-gray-800 mr-4">Total:</h3>
+            <p id="grand-total" class="text-4xl font-extrabold text-blue-700">R$ 0,00</p>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-10">
+            <button id="download-pdf-btn" class="btn-success flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 10a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1-4a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                </svg>
+                Gerar PDF
+            </button>
+            <button id="download-image-btn" class="btn-primary flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Gerar Imagem
+            </button>
+            <button id="clear-all-btn" class="btn-warning flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm-1 3a1 1 0 100 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+                Limpar Tudo
+            </button>
         </div>
     </div>
 
-    <div id="preview">
-        <div class="preview-header">
-            <div>
-                <h2>PRIN 3D</h2>
-                <div>Orçamento</div>
-            </div>
-            <div>
-                <img id="preview-logo" class="preview-logo" src="" alt="Logo" style="display: none;">
-            </div>
-        </div>
-
-        <div class="preview-info">
-            <div><strong>Cliente:</strong> <span id="preview-client"></span></div>
-            <div><strong>Contato:</strong> <span id="preview-contact"></span></div>
-            <div><strong>Data:</strong> <span id="preview-date"></span></div>
-        </div>
-
-        <div class="preview-title">DETALHES DO ORÇAMENTO</div>
-
-        <table class="preview-table" id="preview-table">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Descrição</th>
-                    <th>Quantidade</th>
-                    <th>Valor Unitário</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody id="preview-items">
-                <!-- Itens serão inseridos aqui -->
-            </tbody>
-        </table>
-
-        <div class="preview-total" id="preview-grand-total">Total: R$ 0,00</div>
-
-        <div class="preview-notes">
-            <strong>Observações:</strong>
-            <div id="preview-notes"></div>
-        </div>
-
-        <div class="preview-footer">
-            PRIN 3D - (83) 9 9910-1520
-        </div>
-    </div>
+    <!-- Scripts para html2canvas e jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Referências aos elementos
-            const itemsBody = document.getElementById('items-body');
-            const addItemBtn = document.getElementById('add-item');
-            const generatePdfBtn = document.getElementById('generate-pdf');
-            const generateImgBtn = document.getElementById('generate-img');
-            const resetFormBtn = document.getElementById('reset-form');
+        document.addEventListener('DOMContentLoaded', () => {
+            const productList = document.getElementById('product-list');
+            const addItemBtn = document.getElementById('add-item-btn');
+            const grandTotalDisplay = document.getElementById('grand-total');
             const logoUpload = document.getElementById('logo-upload');
             const logoPreview = document.getElementById('logo-preview');
-            const previewLogo = document.getElementById('preview-logo');
-            
-            // Adicionar novo item
-            addItemBtn.addEventListener('click', function() {
-                const newRow = document.createElement('tr');
-                newRow.innerHTML = `
-                    <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
-                    <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
-                    <td><input type="number" class="item-quantity" min="1" value="1"></td>
-                    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
-                    <td class="item-total">R$ 0,00</td>
-                    <td><button class="remove-item">×</button></td>
-                `;
-                itemsBody.appendChild(newRow);
-                
-                // Adicionar eventos aos novos inputs
-                addItemEvents(newRow);
-            });
-            
-            // Adicionar eventos aos itens existentes
-            function addItemEvents(row) {
-                const quantityInput = row.querySelector('.item-quantity');
-                const priceInput = row.querySelector('.item-price');
-                const totalCell = row.querySelector('.item-total');
-                const removeBtn = row.querySelector('.remove-item');
-                
-                // Calcular total quando quantidade ou preço mudar
-                function calculateItemTotal() {
-                    const quantity = parseFloat(quantityInput.value) || 0;
-                    const price = parseFloat(priceInput.value) || 0;
-                    const total = quantity * price;
-                    totalCell.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
-                    calculateGrandTotal();
-                    updatePreview();
-                }
-                
-                quantityInput.addEventListener('input', calculateItemTotal);
-                priceInput.addEventListener('input', calculateItemTotal);
-                
-                // Remover item
-                removeBtn.addEventListener('click', function() {
-                    row.remove();
-                    calculateGrandTotal();
-                    updatePreview();
-                });
-            }
-            
-            // Adicionar eventos aos itens iniciais
-            document.querySelectorAll('#items-body tr').forEach(row => {
-                addItemEvents(row);
-            });
-            
-            // Calcular total geral
-            function calculateGrandTotal() {
+            const selectedFileNameDisplay = document.getElementById('selected-file-name');
+            const downloadImageBtn = document.getElementById('download-image-btn');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            const quoteContent = document.getElementById('quote-content');
+            const clientNameInput = document.getElementById('client-name');
+            const clientContactInput = document.getElementById('client-contact');
+            const observationsTextarea = document.getElementById('observations');
+            const paymentConditionsTextarea = document.getElementById('payment-conditions'); // Novo
+
+            // --- Funções Auxiliares ---
+
+            // Formata um número para o formato monetário brasileiro (BRL)
+            const formatCurrency = (value) => {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2
+                }).format(value);
+            };
+
+            // Remove a formatação de moeda para obter o valor numérico
+            const parseCurrency = (valueString) => {
+                // Remove "R$", pontos de milhar e substitui vírgula por ponto decimal
+                const cleanString = valueString.replace('R$', '').replace(/\./g, '').replace(',', '.').trim();
+                return parseFloat(cleanString) || 0;
+            };
+
+            // Calcula o total de um item específico
+            const calculateItemTotal = (itemElement) => {
+                const unitValueInput = itemElement.querySelector('.unit-value');
+                const quantityInput = itemElement.querySelector('.quantity');
+                const itemTotalDisplay = itemElement.querySelector('.item-total-display');
+
+                // Garante que os valores sejam numéricos
+                const unitValue = parseCurrency(unitValueInput.value);
+                const quantity = parseInt(quantityInput.value) || 0;
+                const itemTotal = unitValue * quantity;
+
+                itemTotalDisplay.textContent = formatCurrency(itemTotal);
+                updateGrandTotal(); // Recalcula o total geral após cada item ser atualizado
+            };
+
+            // Atualiza o total geral do orçamento
+            const updateGrandTotal = () => {
                 let grandTotal = 0;
-                document.querySelectorAll('.item-total').forEach(cell => {
-                    const value = parseFloat(cell.textContent.replace('R$ ', '').replace(',', '.')) || 0;
-                    grandTotal += value;
+                document.querySelectorAll('#product-list tr').forEach(row => {
+                    const itemTotalDisplay = row.querySelector('.item-total-display');
+                    const itemTotal = parseCurrency(itemTotalDisplay.textContent);
+                    grandTotal += itemTotal;
                 });
-                document.getElementById('grand-total').textContent = 'Total: R$ ' + grandTotal.toFixed(2).replace('.', ',');
-            }
-            
-            // Upload da logo
-            logoUpload.addEventListener('change', function(e) {
-                const file = e.target.files[0];
+                grandTotalDisplay.textContent = formatCurrency(grandTotal);
+            };
+
+            // Cria um novo item de produto (linha da tabela)
+            const createProductRow = () => {
+                const row = document.createElement('tr');
+                row.classList.add('product-row'); // Adiciona uma classe para fácil seleção
+
+                row.innerHTML = `
+                    <td><input type="text" class="product-name" placeholder="Nome do produto"></td>
+                    <td><textarea class="description" rows="1" placeholder="Descrição"></textarea></td>
+                    <td><input type="number" class="quantity text-center" value="1" min="1"></td>
+                    <td><input type="text" class="unit-value text-right" placeholder="0,00" inputmode="decimal"></td>
+                    <td class="item-total-display currency-display">R$ 0,00</td>
+                    <td class="text-center"><button class="remove-item-btn btn-danger text-sm px-2 py-1">X</button></td>
+                `;
+
+                // Adiciona listeners para os campos de entrada do novo item
+                const unitValueInput = row.querySelector('.unit-value');
+                const quantityInput = row.querySelector('.quantity');
+                const removeItemBtn = row.querySelector('.remove-item-btn');
+
+                // Mask for currency input
+                unitValueInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                    if (value.length > 2) {
+                        value = value.replace(/(\d+)(\d{2})$/, '$1,$2'); // Add comma for cents
+                        if (value.length > 6) { // Add thousand separator
+                            value = value.replace(/(\d)(?=(\d{3})+,)/g, '$1.');
+                        }
+                    } else if (value.length === 1) {
+                        value = '0,0' + value;
+                    } else if (value.length === 2) {
+                        value = '0,' + value;
+                    }
+                    e.target.value = value;
+                    calculateItemTotal(row);
+                });
+                unitValueInput.addEventListener('focus', (e) => {
+                    // Remove R$ and keep just the number for editing
+                    if (e.target.value.includes('R$')) {
+                        e.target.value = parseCurrency(e.target.value).toFixed(2).replace('.', ',');
+                    }
+                });
+                unitValueInput.addEventListener('blur', (e) => {
+                    // Format back to currency on blur
+                    e.target.value = formatCurrency(parseCurrency(e.target.value));
+                });
+
+
+                quantityInput.addEventListener('input', () => calculateItemTotal(row));
+
+                removeItemBtn.addEventListener('click', () => {
+                    row.remove();
+                    updateGrandTotal();
+                });
+
+                // Inicializa o valor total do item
+                calculateItemTotal(row);
+
+                return row;
+            };
+
+            // Adiciona um novo item de produto ao orçamento
+            const addItem = () => {
+                const newRow = createProductRow();
+                productList.appendChild(newRow);
+                updateGrandTotal();
+            };
+
+            // Limpa todos os campos do formulário
+            const clearAll = () => {
+                clientNameInput.value = '';
+                clientContactInput.value = '';
+                observationsTextarea.value = '';
+                paymentConditionsTextarea.value = 'Pagamento de 50% na entrada e 50% na retirada do pedido.'; // Resetar condições de pagamento
+
+                // Remove todos os itens da tabela
+                while (productList.firstChild) {
+                    productList.removeChild(productList.firstChild);
+                }
+                // Adiciona um item vazio para começar
+                addItem();
+
+                // Resetar a logomarca
+                logoPreview.src = "https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo";
+                logoPreview.style.display = 'none';
+                selectedFileNameDisplay.textContent = "Nenhum arquivo escolhido";
+                logoUpload.value = ''; // Limpa o input file
+
+                updateGrandTotal();
+            };
+
+            // --- Event Listeners ---
+
+            addItemBtn.addEventListener('click', addItem);
+            clearAllBtn.addEventListener('click', clearAll);
+
+            logoUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        logoPreview.src = event.target.result;
-                        logoPreview.style.display = 'block';
-                        previewLogo.src = event.target.result;
-                        previewLogo.style.display = 'block';
+                    reader.onload = (e) => {
+                        logoPreview.src = e.target.result;
+                        logoPreview.style.display = 'block'; // Mostra a imagem
                     };
                     reader.readAsDataURL(file);
-                }
-            });
-            
-            // Atualizar pré-visualização
-            function updatePreview() {
-                document.getElementById('preview-client').textContent = document.getElementById('client-name').value || '[Nome do Cliente]';
-                document.getElementById('preview-contact').textContent = document.getElementById('client-contact').value || '[Contato]';
-                
-                const today = new Date();
-                document.getElementById('preview-date').textContent = today.toLocaleDateString('pt-BR');
-                
-                const previewItems = document.getElementById('preview-items');
-                previewItems.innerHTML = '';
-                
-                document.querySelectorAll('#items-body tr').forEach(row => {
-                    const name = row.querySelector('.item-name').value || '[Item]';
-                    const description = row.querySelector('.item-description').value || '[Descrição]';
-                    const quantity = row.querySelector('.item-quantity').value || '0';
-                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                    const total = parseFloat(row.querySelector('.item-total').textContent.replace('R$ ', '').replace(',', '.')) || 0;
-                    
-                    const newRow = document.createElement('tr');
-                    newRow.innerHTML = `
-                        <td>${name}</td>
-                        <td>${description}</td>
-                        <td>${quantity}</td>
-                        <td>R$ ${price.toFixed(2).replace('.', ',')}</td>
-                        <td>R$ ${total.toFixed(2).replace('.', ',')}</td>
-                    `;
-                    previewItems.appendChild(newRow);
-                });
-                
-                document.getElementById('preview-grand-total').textContent = document.getElementById('grand-total').textContent;
-                document.getElementById('preview-notes').textContent = document.getElementById('notes').value || 'Nenhuma observação.';
-            }
-            
-            // Eventos para atualizar a pré-visualização
-            document.getElementById('client-name').addEventListener('input', updatePreview);
-            document.getElementById('client-contact').addEventListener('input', updatePreview);
-            document.getElementById('notes').addEventListener('input', updatePreview);
-            
-            // Gerar PDF
-            generatePdfBtn.addEventListener('click', function() {
-                updatePreview();
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                // Adicionar conteúdo do preview ao PDF
-                doc.html(document.getElementById('preview'), {
-                    callback: function(doc) {
-                        doc.save('Orcamento_PRIN3D.pdf');
-                    },
-                    x: 10,
-                    y: 10,
-                    width: 190,
-                    windowWidth: 800
-                });
-            });
-            
-            // Gerar Imagem
-            generateImgBtn.addEventListener('click', function() {
-                updatePreview();
-                html2canvas(document.getElementById('preview')).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'Orcamento_PRIN3D.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                });
-            });
-            
-            // Limpar formulário
-            resetFormBtn.addEventListener('click', function() {
-                if (confirm('Tem certeza que deseja limpar todo o orçamento?')) {
-                    document.querySelector('form').reset();
-                    itemsBody.innerHTML = `
-                        <tr>
-                            <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
-                            <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
-                            <td><input type="number" class="item-quantity" min="1" value="1"></td>
-                            <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
-                            <td class="item-total">R$ 0,00</td>
-                            <td><button class="remove-item">×</button></td>
-                        </tr>
-                    `;
-                    document.getElementById('grand-total').textContent = 'Total: R$ 0,00';
-                    logoPreview.src = '';
+                    selectedFileNameDisplay.textContent = file.name;
+                } else {
+                    logoPreview.src = "https://placehold.co/150x80/aabbcc/ffffff?text=Seu+Logo";
                     logoPreview.style.display = 'none';
-                    previewLogo.src = '';
-                    previewLogo.style.display = 'none';
-                    updatePreview();
+                    selectedFileNameDisplay.textContent = "Nenhum arquivo escolhido";
                 }
             });
-            
-            // Inicializar pré-visualização
-            updatePreview();
+
+            // Listener para o botão "Gerar Imagem"
+            downloadImageBtn.addEventListener('click', async () => {
+                // Esconde os botões para a captura da imagem/PDF
+                const buttonsToHide = [addItemBtn, downloadImageBtn, downloadPdfBtn, clearAllBtn];
+                const removeBtns = document.querySelectorAll('.remove-item-btn');
+                
+                buttonsToHide.forEach(btn => btn.style.display = 'none');
+                removeBtns.forEach(btn => btn.style.display = 'none');
+
+                try {
+                    const canvas = await html2canvas(quoteContent, { scale: 2, logging: false, useCORS: true });
+                    const image = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = image;
+                    link.download = 'orcamento_PRIN3D.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (error) {
+                    console.error('Erro ao gerar imagem:', error);
+                    // Use um modal ou div de mensagem no lugar de alert()
+                    const messageBox = document.createElement('div');
+                    messageBox.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb; z-index: 1000;';
+                    messageBox.textContent = 'Não foi possível gerar a imagem do orçamento. Por favor, tente novamente.';
+                    document.body.appendChild(messageBox);
+                    setTimeout(() => messageBox.remove(), 3000); // Remove após 3 segundos
+                } finally {
+                    // Restaura a visibilidade dos botões
+                    buttonsToHide.forEach(btn => btn.style.display = '');
+                    removeBtns.forEach(btn => btn.style.display = '');
+                }
+            });
+
+            // Listener para o botão "Gerar PDF"
+            downloadPdfBtn.addEventListener('click', async () => {
+                const { jsPDF } = window.jspdf;
+
+                // Esconde os botões para a captura da imagem/PDF
+                const buttonsToHide = [addItemBtn, downloadImageBtn, downloadPdfBtn, clearAllBtn];
+                const removeBtns = document.querySelectorAll('.remove-item-btn');
+                
+                buttonsToHide.forEach(btn => btn.style.display = 'none');
+                removeBtns.forEach(btn => btn.style.display = 'none');
+
+                try {
+                    const canvas = await html2canvas(quoteContent, { scale: 2, logging: false, useCORS: true });
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' size
+
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 297; // A4 height in mm
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    // Para conteúdo que excede uma página
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    pdf.save('orcamento_PRIN3D.pdf');
+                } catch (error) {
+                    console.error('Erro ao gerar PDF:', error);
+                    // Use um modal ou div de mensagem no lugar de alert()
+                    const messageBox = document.createElement('div');
+                    messageBox.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; border: 1px solid #f5c6cb; z-index: 1000;';
+                    messageBox.textContent = 'Não foi possível gerar o PDF do orçamento. Por favor, tente novamente.';
+                    document.body.appendChild(messageBox);
+                    setTimeout(() => messageBox.remove(), 3000); // Remove após 3 segundos
+                } finally {
+                    // Restaura a visibilidade dos botões
+                    buttonsToHide.forEach(btn => btn.style.display = '');
+                    removeBtns.forEach(btn => btn.style.display = '');
+                }
+            });
+
+            // Adiciona o primeiro item quando a página carrega
+            addItem();
         });
     </script>
 </body>
