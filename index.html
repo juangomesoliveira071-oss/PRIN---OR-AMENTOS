@@ -3,251 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Orçamentos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Biblioteca para gerar a imagem a partir do HTML -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLmbG0C+wFjr8bCqwAUPg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>PRIN 3D - Gerador de Orçamentos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
         }
-        /* Estilo customizado para o botão de upload */
-        .file-input-button {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+        .logo-container {
+            text-align: center;
+        }
+        .logo-preview {
+            max-width: 150px;
+            max-height: 100px;
+            margin-bottom: 10px;
+        }
+        .company-info {
+            text-align: right;
+        }
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .contact {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .items-table th, .items-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .items-table th {
+            background-color: #f2f2f2;
+        }
+        .add-item {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
             cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .add-item:hover {
+            background-color: #2980b9;
+        }
+        .remove-item {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .total {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+            margin-top: 10px;
+        }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-pdf {
+            background-color: #27ae60;
+            color: white;
+        }
+        .btn-img {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-reset {
+            background-color: #e67e22;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        #preview {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .preview-logo {
+            max-width: 120px;
+            max-height: 80px;
+        }
+        .preview-title {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .preview-table th, .preview-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .preview-table th {
+            background-color: #f2f2f2;
+        }
+        .preview-total {
+            font-weight: bold;
+            text-align: right;
+            margin-top: 20px;
+        }
+        .preview-footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            text-align: center;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
-
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
-        
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Gerador de Orçamentos</h1>
-            <p class="text-gray-600 mt-2">Preencha os campos abaixo para criar um orçamento profissional.</p>
-        </header>
-
-        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Coluna da Esquerda -->
-                <div class="space-y-4">
-                    <div>
-                        <label for="yourName" class="block text-sm font-medium text-gray-700 mb-1">Seu Nome / Nome da Empresa</label>
-                        <input type="text" id="yourName" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: João Silva ME">
-                    </div>
-                    <div>
-                        <label for="yourContact" class="block text-sm font-medium text-gray-700 mb-1">Seu Contato (E-mail / Telefone)</label>
-                        <input type="text" id="yourContact" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="contato@email.com | (11) 98765-4321">
-                    </div>
-                    <div>
-                        <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
-                        <input type="text" id="clientName" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Maria Souza">
-                    </div>
-                     <div>
-                        <label for="quoteValidity" class="block text-sm font-medium text-gray-700 mb-1">Validade do Orçamento (dias)</label>
-                        <input type="number" id="quoteValidity" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: 7" value="7">
-                    </div>
-                     <div>
-                        <label for="logoUpload" class="block text-sm font-medium text-gray-700 mb-1">Sua Logomarca</label>
-                        <input type="file" id="logoUpload" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file-input-button"/>
-                    </div>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-container">
+                <div id="logo-preview-container">
+                    <img id="logo-preview" class="logo-preview" src="" alt="Logo" style="display: none;">
                 </div>
-                <!-- Coluna da Direita -->
-                <div class="space-y-4 flex flex-col">
-                    <div class="flex-grow">
-                        <label for="serviceDescription" class="block text-sm font-medium text-gray-700 mb-1">Itens / Descrição dos Serviços</label>
-                        <textarea id="serviceDescription" rows="5" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Descreva cada item ou serviço em uma nova linha.&#10;Ex: Criação de Logotipo&#10;Ex: Design de Cartão de Visitas"></textarea>
-                    </div>
-                    <!-- NOVO CAMPO: Formas de Pagamento -->
-                    <div>
-                        <label for="paymentTerms" class="block text-sm font-medium text-gray-700 mb-1">Formas de Pagamento</label>
-                        <textarea id="paymentTerms" rows="2" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Ex: 50% de entrada, 50% na entrega."></textarea>
-                    </div>
-                    <!-- NOVO CAMPO: Observações -->
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                        <textarea id="notes" rows="2" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-y" placeholder="Ex: Material não incluso."></textarea>
-                    </div>
-                    <div>
-                        <label for="totalValue" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
-                        <input type="number" id="totalValue" step="0.01" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: 1500.50">
-                    </div>
-                </div>
+                <input type="file" id="logo-upload" accept="image/*">
             </div>
-            <div class="mt-8 text-center">
-                <button id="generateButton" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 transform hover:scale-105">
-                    Gerar Orçamento
-                </button>
+            <div class="company-info">
+                <h1>PRIN 3D</h1>
+                <div class="contact">(83) 9 9910-1520</div>
             </div>
         </div>
 
-        <!-- Área de Exibição do Orçamento -->
-        <div id="quoteOutputWrapper" class="hidden">
-            <div id="quoteOutput" class="bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border border-gray-200">
-                <!-- Cabeçalho do Orçamento -->
-                <div class="flex justify-between items-start pb-6 border-b">
-                    <div class="flex items-center">
-                        <img id="outputLogo" class="hidden h-16 w-auto mr-5" alt="Logomarca da Empresa">
-                        <div>
-                            <h2 id="outputYourName" class="text-2xl font-bold text-gray-900">Seu Nome / Empresa</h2>
-                            <p id="outputYourContact" class="text-gray-600">Seu Contato</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <h3 class="text-3xl font-bold text-gray-800 tracking-wider">ORÇAMENTO</h3>
-                        <p id="outputQuoteNumber" class="text-gray-500 mt-1">Nº: 00000000</p>
-                        <p id="outputDate" class="text-gray-500">Data: DD/MM/AAAA</p>
-                    </div>
-                </div>
+        <div class="form-group">
+            <label for="client-name">Cliente:</label>
+            <input type="text" id="client-name" placeholder="Nome do cliente">
+        </div>
 
-                <div class="my-8">
-                    <p class="text-gray-600 font-medium">Para:</p>
-                    <p id="outputClientName" class="text-xl font-semibold text-gray-800">Nome do Cliente</p>
-                </div>
+        <div class="form-group">
+            <label for="client-contact">Contato do Cliente:</label>
+            <input type="text" id="client-contact" placeholder="Telefone/E-mail">
+        </div>
 
-                <div>
-                    <h4 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Descrição dos Itens/Serviços</h4>
-                    <div id="outputServiceDescription" class="text-gray-700 whitespace-pre-wrap min-h-[80px]"></div>
-                </div>
-                
-                <!-- SEÇÃO FORMAS DE PAGAMENTO -->
-                <div class="mt-8">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-3 border-b pb-2">Formas de Pagamento</h4>
-                    <p id="outputPaymentTerms" class="text-gray-700 whitespace-pre-wrap">A ser combinado.</p>
-                </div>
+        <h3>Itens do Orçamento</h3>
+        <table class="items-table" id="items-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Quantidade</th>
+                    <th>Valor Unitário</th>
+                    <th>Total</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="items-body">
+                <tr>
+                    <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
+                    <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
+                    <td><input type="number" class="item-quantity" min="1" value="1"></td>
+                    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
+                    <td class="item-total">R$ 0,00</td>
+                    <td><button class="remove-item">×</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button class="add-item" id="add-item">+ Adicionar Item</button>
 
-                <div class="mt-8 pt-6 border-t-2 border-dashed flex justify-end">
-                    <div class="text-right">
-                        <p class="text-gray-600 font-medium">VALOR TOTAL</p>
-                        <p id="outputTotalValue" class="text-3xl font-bold text-blue-600">R$ 0,00</p>
-                    </div>
-                </div>
+        <div class="total" id="grand-total">Total: R$ 0,00</div>
 
-                <!-- RODAPÉ E OBSERVAÇÕES -->
-                <div class="mt-10 pt-6 border-t text-sm text-gray-500">
-                    <div id="notesWrapper" class="hidden mb-4 text-left">
-                        <p class="font-semibold">Observações:</p>
-                        <p id="outputNotes" class="whitespace-pre-wrap"></p>
-                    </div>
-                    <div class="text-center">
-                        <p>Este orçamento é válido por <strong id="outputValidity">7</strong> dias a partir da data de emissão.</p>
-                        <p class="mt-1">Agradecemos pela sua preferência!</p>
-                    </div>
-                </div>
+        <div class="form-group">
+            <label for="notes">Observações:</label>
+            <textarea id="notes" placeholder="Termos, condições, prazos de entrega..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-pdf" id="generate-pdf">Gerar PDF</button>
+            <button class="btn btn-img" id="generate-img">Gerar Imagem</button>
+            <button class="btn btn-reset" id="reset-form">Limpar Tudo</button>
+        </div>
+    </div>
+
+    <div id="preview">
+        <div class="preview-header">
+            <div>
+                <h2>PRIN 3D</h2>
+                <div>Orçamento</div>
             </div>
-            
-            <div class="text-center mt-6">
-                 <button id="saveImageButton" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 transform hover:scale-105">
-                    Salvar como Imagem (.png)
-                </button>
+            <div>
+                <img id="preview-logo" class="preview-logo" src="" alt="Logo" style="display: none;">
             </div>
+        </div>
+
+        <div class="preview-info">
+            <div><strong>Cliente:</strong> <span id="preview-client"></span></div>
+            <div><strong>Contato:</strong> <span id="preview-contact"></span></div>
+            <div><strong>Data:</strong> <span id="preview-date"></span></div>
+        </div>
+
+        <div class="preview-title">DETALHES DO ORÇAMENTO</div>
+
+        <table class="preview-table" id="preview-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Descrição</th>
+                    <th>Quantidade</th>
+                    <th>Valor Unitário</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="preview-items">
+                <!-- Itens serão inseridos aqui -->
+            </tbody>
+        </table>
+
+        <div class="preview-total" id="preview-grand-total">Total: R$ 0,00</div>
+
+        <div class="preview-notes">
+            <strong>Observações:</strong>
+            <div id="preview-notes"></div>
+        </div>
+
+        <div class="preview-footer">
+            PRIN 3D - (83) 9 9910-1520
         </div>
     </div>
 
     <script>
-        const generateButton = document.getElementById('generateButton');
-        const saveImageButton = document.getElementById('saveImageButton');
-        const quoteOutputWrapper = document.getElementById('quoteOutputWrapper');
-        const quoteOutput = document.getElementById('quoteOutput');
-        const logoUpload = document.getElementById('logoUpload');
-        
-        let logoDataUrl = null;
-
-        logoUpload.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    logoDataUrl = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                logoDataUrl = null;
-            }
-        });
-
-        generateButton.addEventListener('click', () => {
-            // Pega os valores dos inputs
-            const yourName = document.getElementById('yourName').value;
-            const yourContact = document.getElementById('yourContact').value;
-            const clientName = document.getElementById('clientName').value;
-            const quoteValidity = document.getElementById('quoteValidity').value;
-            const serviceDescription = document.getElementById('serviceDescription').value;
-            const totalValue = parseFloat(document.getElementById('totalValue').value);
-            const paymentTerms = document.getElementById('paymentTerms').value;
-            const notes = document.getElementById('notes').value;
-
-            if (!yourName || !clientName || !serviceDescription || isNaN(totalValue)) {
-                alert('Por favor, preencha todos os campos obrigatórios: Seu Nome, Nome do Cliente, Descrição e Valor Total.');
-                return;
-            }
-
-            // Seleciona os elementos de output
-            const outputYourName = document.getElementById('outputYourName');
-            const outputYourContact = document.getElementById('outputYourContact');
-            const outputQuoteNumber = document.getElementById('outputQuoteNumber');
-            const outputDate = document.getElementById('outputDate');
-            const outputClientName = document.getElementById('outputClientName');
-            const outputServiceDescription = document.getElementById('outputServiceDescription');
-            const outputPaymentTerms = document.getElementById('outputPaymentTerms');
-            const outputTotalValue = document.getElementById('outputTotalValue');
-            const outputValidity = document.getElementById('outputValidity');
-            const outputLogo = document.getElementById('outputLogo');
-            const outputNotes = document.getElementById('outputNotes');
-            const notesWrapper = document.getElementById('notesWrapper');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Referências aos elementos
+            const itemsBody = document.getElementById('items-body');
+            const addItemBtn = document.getElementById('add-item');
+            const generatePdfBtn = document.getElementById('generate-pdf');
+            const generateImgBtn = document.getElementById('generate-img');
+            const resetFormBtn = document.getElementById('reset-form');
+            const logoUpload = document.getElementById('logo-upload');
+            const logoPreview = document.getElementById('logo-preview');
+            const previewLogo = document.getElementById('preview-logo');
             
-            // Gera dados e formata
-            const quoteNumber = Date.now().toString().slice(-8);
-            const today = new Date();
-            const formattedDate = today.toLocaleDateString('pt-BR');
-            const formattedValue = totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-            // Atualiza o HTML com os valores
-            outputYourName.innerText = yourName;
-            outputYourContact.innerText = yourContact;
-            outputQuoteNumber.innerText = `Nº: ${quoteNumber}`;
-            outputDate.innerText = `Data: ${formattedDate}`;
-            outputClientName.innerText = clientName;
-            outputServiceDescription.innerText = serviceDescription;
-            outputPaymentTerms.innerText = paymentTerms || 'A ser combinado.';
-            outputTotalValue.innerText = formattedValue;
-            outputValidity.innerText = quoteValidity || '7';
-
-            if (logoDataUrl) {
-                outputLogo.src = logoDataUrl;
-                outputLogo.classList.remove('hidden');
-            } else {
-                outputLogo.classList.add('hidden');
+            // Adicionar novo item
+            addItemBtn.addEventListener('click', function() {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
+                    <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
+                    <td><input type="number" class="item-quantity" min="1" value="1"></td>
+                    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
+                    <td class="item-total">R$ 0,00</td>
+                    <td><button class="remove-item">×</button></td>
+                `;
+                itemsBody.appendChild(newRow);
+                
+                // Adicionar eventos aos novos inputs
+                addItemEvents(newRow);
+            });
+            
+            // Adicionar eventos aos itens existentes
+            function addItemEvents(row) {
+                const quantityInput = row.querySelector('.item-quantity');
+                const priceInput = row.querySelector('.item-price');
+                const totalCell = row.querySelector('.item-total');
+                const removeBtn = row.querySelector('.remove-item');
+                
+                // Calcular total quando quantidade ou preço mudar
+                function calculateItemTotal() {
+                    const quantity = parseFloat(quantityInput.value) || 0;
+                    const price = parseFloat(priceInput.value) || 0;
+                    const total = quantity * price;
+                    totalCell.textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+                    calculateGrandTotal();
+                    updatePreview();
+                }
+                
+                quantityInput.addEventListener('input', calculateItemTotal);
+                priceInput.addEventListener('input', calculateItemTotal);
+                
+                // Remover item
+                removeBtn.addEventListener('click', function() {
+                    row.remove();
+                    calculateGrandTotal();
+                    updatePreview();
+                });
             }
             
-            if (notes) {
-                outputNotes.innerText = notes;
-                notesWrapper.classList.remove('hidden');
-            } else {
-                notesWrapper.classList.add('hidden');
+            // Adicionar eventos aos itens iniciais
+            document.querySelectorAll('#items-body tr').forEach(row => {
+                addItemEvents(row);
+            });
+            
+            // Calcular total geral
+            function calculateGrandTotal() {
+                let grandTotal = 0;
+                document.querySelectorAll('.item-total').forEach(cell => {
+                    const value = parseFloat(cell.textContent.replace('R$ ', '').replace(',', '.')) || 0;
+                    grandTotal += value;
+                });
+                document.getElementById('grand-total').textContent = 'Total: R$ ' + grandTotal.toFixed(2).replace('.', ',');
             }
-
-            quoteOutputWrapper.classList.remove('hidden');
-            quoteOutputWrapper.scrollIntoView({ behavior: 'smooth' });
-        });
-
-        saveImageButton.addEventListener('click', () => {
-            setTimeout(() => {
-                html2canvas(quoteOutput, { 
-                    scale: 2,
-                    useCORS: true 
-                }).then(canvas => {
+            
+            // Upload da logo
+            logoUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        logoPreview.src = event.target.result;
+                        logoPreview.style.display = 'block';
+                        previewLogo.src = event.target.result;
+                        previewLogo.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Atualizar pré-visualização
+            function updatePreview() {
+                document.getElementById('preview-client').textContent = document.getElementById('client-name').value || '[Nome do Cliente]';
+                document.getElementById('preview-contact').textContent = document.getElementById('client-contact').value || '[Contato]';
+                
+                const today = new Date();
+                document.getElementById('preview-date').textContent = today.toLocaleDateString('pt-BR');
+                
+                const previewItems = document.getElementById('preview-items');
+                previewItems.innerHTML = '';
+                
+                document.querySelectorAll('#items-body tr').forEach(row => {
+                    const name = row.querySelector('.item-name').value || '[Item]';
+                    const description = row.querySelector('.item-description').value || '[Descrição]';
+                    const quantity = row.querySelector('.item-quantity').value || '0';
+                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                    const total = parseFloat(row.querySelector('.item-total').textContent.replace('R$ ', '').replace(',', '.')) || 0;
+                    
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td>${name}</td>
+                        <td>${description}</td>
+                        <td>${quantity}</td>
+                        <td>R$ ${price.toFixed(2).replace('.', ',')}</td>
+                        <td>R$ ${total.toFixed(2).replace('.', ',')}</td>
+                    `;
+                    previewItems.appendChild(newRow);
+                });
+                
+                document.getElementById('preview-grand-total').textContent = document.getElementById('grand-total').textContent;
+                document.getElementById('preview-notes').textContent = document.getElementById('notes').value || 'Nenhuma observação.';
+            }
+            
+            // Eventos para atualizar a pré-visualização
+            document.getElementById('client-name').addEventListener('input', updatePreview);
+            document.getElementById('client-contact').addEventListener('input', updatePreview);
+            document.getElementById('notes').addEventListener('input', updatePreview);
+            
+            // Gerar PDF
+            generatePdfBtn.addEventListener('click', function() {
+                updatePreview();
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Adicionar conteúdo do preview ao PDF
+                doc.html(document.getElementById('preview'), {
+                    callback: function(doc) {
+                        doc.save('Orcamento_PRIN3D.pdf');
+                    },
+                    x: 10,
+                    y: 10,
+                    width: 190,
+                    windowWidth: 800
+                });
+            });
+            
+            // Gerar Imagem
+            generateImgBtn.addEventListener('click', function() {
+                updatePreview();
+                html2canvas(document.getElementById('preview')).then(canvas => {
                     const link = document.createElement('a');
-                    const clientNameForFile = document.getElementById('clientName').value.replace(/ /g, '_') || 'cliente';
-                    link.download = `orcamento-${clientNameForFile}.png`;
+                    link.download = 'Orcamento_PRIN3D.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 });
-            }, 100);
+            });
+            
+            // Limpar formulário
+            resetFormBtn.addEventListener('click', function() {
+                if (confirm('Tem certeza que deseja limpar todo o orçamento?')) {
+                    document.querySelector('form').reset();
+                    itemsBody.innerHTML = `
+                        <tr>
+                            <td><input type="text" class="item-name" placeholder="Nome do produto"></td>
+                            <td><textarea class="item-description" placeholder="Descrição"></textarea></td>
+                            <td><input type="number" class="item-quantity" min="1" value="1"></td>
+                            <td><input type="number" class="item-price" min="0" step="0.01" placeholder="R$ 0,00"></td>
+                            <td class="item-total">R$ 0,00</td>
+                            <td><button class="remove-item">×</button></td>
+                        </tr>
+                    `;
+                    document.getElementById('grand-total').textContent = 'Total: R$ 0,00';
+                    logoPreview.src = '';
+                    logoPreview.style.display = 'none';
+                    previewLogo.src = '';
+                    previewLogo.style.display = 'none';
+                    updatePreview();
+                }
+            });
+            
+            // Inicializar pré-visualização
+            updatePreview();
         });
     </script>
-
 </body>
 </html>
