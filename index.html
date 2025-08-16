@@ -97,7 +97,7 @@
 <body class="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8 flex items-center justify-center font-sans">
 
     <!-- Caixa de Mensagem -->
-    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity50 flex items-center justify-center z-50 hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
             <p id="message-content" class="text-gray-800 text-lg mb-4"></p>
             <button id="message-ok-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
@@ -141,29 +141,31 @@
                     </div>
                 </div>
 
-                <table class="min-w-full bg-white border border-gray-300 mb-8">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="py-3 px-4 border-b border-gray-300 text-left text-sm font-semibold text-gray-700 uppercase">Item</th>
-                            <th class="py-3 px-4 border-b border-gray-300 text-center text-sm font-semibold text-gray-700 uppercase">Qtd</th>
-                            <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Preço Unit.</th>
-                            <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="budget-items-preview">
-                        <!-- Itens do orçamento serão renderizados aqui -->
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colSpan="3" class="py-4 px-4 text-right text-xl font-bold text-gray-900">Total Geral:</td>
-                            <td class="py-4 px-4 text-right text-2xl font-extrabold text-blue-700" id="budget-total-preview"></td>
-                        </tr>
-                        <tr>
-                            <td colSpan="3" class="py-2 px-4 text-right text-xl font-bold text-gray-900 border-t border-gray-300">Entrada (50%):</td>
-                            <td class="py-2 px-4 text-right text-2xl font-extrabold text-green-700 border-t border-gray-300" id="budget-downpayment-preview"></td>
-                        </tr>
-                    </tfoot>
-                </table>
+                <div class="overflow-x-auto"> <!-- Adicionado para responsividade da tabela -->
+                    <table class="min-w-full bg-white border border-gray-300 mb-8">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="py-3 px-4 border-b border-gray-300 text-left text-sm font-semibold text-gray-700 uppercase">Item</th>
+                                <th class="py-3 px-4 border-b border-gray-300 text-center text-sm font-semibold text-gray-700 uppercase">Qtd</th>
+                                <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Preço Unit.</th>
+                                <th class="py-3 px-4 border-b border-gray-300 text-right text-sm font-semibold text-gray-700 uppercase">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-items-preview">
+                            <!-- Itens do orçamento serão renderizados aqui -->
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colSpan="3" class="py-4 px-4 text-right text-xl font-bold text-gray-900">Total Geral:</td>
+                                <td class="py-4 px-4 text-right text-2xl font-extrabold text-blue-700" id="budget-total-preview"></td>
+                            </tr>
+                            <tr>
+                                <td colSpan="3" class="py-2 px-4 text-right text-xl font-bold text-gray-900 border-t border-gray-300">Entrada (50%):</td>
+                                <td class="py-2 px-4 text-right text-2xl font-extrabold text-green-700 border-t border-gray-300" id="budget-downpayment-preview"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
 
                 <p class="text-gray-600 text-sm mt-8 text-center italic">
                     Este é um orçamento gerado automaticamente. Valores sujeitos a confirmação.
